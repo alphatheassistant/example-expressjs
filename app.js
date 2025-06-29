@@ -38,7 +38,7 @@ app.post('/generateidea', async (req, res) => {
           },
           {
             "text": `Below is the details of the hackathon ssee it and give me only 4 ideas according to the system prompt:
-            ${details}
+            ${detailes}
             `}
         ]
       }
