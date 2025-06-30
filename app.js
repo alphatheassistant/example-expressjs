@@ -1,9 +1,12 @@
 const express = require('express')
 const app = express()
 const port = process.env.PORT || 3000
+const cors = require('cors');
 const fetch = require('node-fetch');
 const cheerio = require('cheerio');
-app.use(express.json())
+app.use(express.json());
+
+app.use(cors());
 app.get('/', (req, res) => {
   res.json({
     message: 'Hello, world!',
