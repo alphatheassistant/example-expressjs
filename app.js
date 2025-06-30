@@ -122,6 +122,10 @@ You will output **4 ideas** in this JSON structure:
         ]
       }
     ],
+     generationConfig: {
+    responseMimeType: 'text/plain',
+    thinkingConfig: { thinkingBudget: 0 }
+  }
    /* generationConfig: {
       responseMimeType: 'text/plain',
       
