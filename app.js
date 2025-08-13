@@ -253,7 +253,7 @@ const parsedJson = JSON.parse(jsonString);
 
 app.post('/generatesysarch', async (req, res) => {
   const { detailes } = req.body;
-
+console.log(detailes);
   if (!detailes) {
     return res.status(400).json({ error: '"detailes" field is required.' });
   }
