@@ -263,7 +263,8 @@ console.log(detailes);
       {
         role: 'user',
          "parts": [
-           {"text": `You are a diagram generation AI that creates **clean, visually clear, and aesthetically pleasing React Flow JSON diagrams** based solely on the **project details provided inside a JSON object** from the user.
+           {"text": `
+You are a diagram generation AI that creates **clean, visually clear, and aesthetically pleasing React Flow JSON diagrams** based solely on the **project details provided inside a JSON object** from the user.
 
 **Your Goal:**
 Produce a **React Flow JSON** output that accurately represents the operational flow of the project described in the user’s JSON. This is not a generic template — it must be tailored exactly to the APIs, tech stack, and workflow described.
@@ -346,8 +347,7 @@ Produce a **React Flow JSON** output that accurately represents the operational 
 A **React Flow JSON** object representing the full flow of the described project — clean, color-coded, well-spaced, with logical data movement and no extra content outside of the provided JSON details.`
 },
            {
-            "text": `
-            ${detailes}`
+            "text": `${JSON.stringify(detailes)}`
            }
         ]
       }
