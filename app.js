@@ -162,6 +162,123 @@ const parsedJson = JSON.parse(jsonString);
 
 
 
+app.post('/generatesysarch', async (req, res) => {
+  const { detailes } = req.body;
+
+  if (!detailes) {
+    return res.status(400).json({ error: '"detailes" field is required.' });
+  }
+
+  const payload = {
+    contents: [
+      {
+        role: 'user',
+         "parts": [
+           {"text":  `You are a senior software architect and expert in creating clean, spacious, theme-friendly React Flow diagrams.  
+Your task: Given a project description, produce a **valid JSON object** containing 'nodes' and 'edges' for React Flow that clearly represents the system architecture.
+
+You must follow these rules:
+
+1. **Output Format**
+   - Output ONLY a JavaScript object with:
+     - 'nodes': array of node objects
+     - 'edges': array of edge objects
+   - No explanations, no extra text.
+   - Must be directly usable in React Flow.
+
+2. **Layout Priority**
+   - **Width > Height** — Stretch the diagram horizontally to utilize screen width, minimizing vertical stacking.
+   - Place components in **logical tiers** (left to right: Input → Processing → Storage/Output).
+   - Keep vertical height minimal but readable.
+   - Arrange related nodes in neat horizontal groups without overlap.
+   - Absolutely no overlapping nodes or edges.
+
+3. **Node Rules**
+   - Each node must have:
+     - 'id' (unique string)
+     - 'type': "input", "default", or "output"
+     - 'position': '{ x, y }' — Carefully spaced to avoid clutter.
+     - 'data.label': concise component name
+     - 'style': 'backgroundColor', 'padding', 'borderRadius', 'fontSize', 'fontWeight', 'color'
+   - **Colors by Category** (theme-safe for light & dark):
+     - UI/Frontend: '#4DA3FF' (blue)
+     - API/Middleware: '#FFB347' (orange)
+     - Backend Services: '#6ECB63' (green)
+     - Databases:'#C678DD' (purple)
+     - AI/ML: '#FF6FB5' (pink)
+     - External APIs: '#A0A0A0' (gray)
+   - Font size: 14px, font weight: 600, padding ≥ 10px, borderRadius: 8px.
+
+4. **Edge Rules**
+   - Each edge must have:
+     - 'id'
+     - 'source', 'target'
+     - 'label' (short)
+     - 'markerEnd': '{ type: 'arrowclosed' }'
+     - 'style.stroke': match source node’s color
+     - Optional flows: dashed (strokeDasharray: '4 2')
+   - Edges must **never cross excessively** — route them to avoid tangled paths.
+   - Keep connections short and visually direct.
+
+5. **Clarity & Readability**
+   - All text must remain fully visible (no truncation or overlapping with edges).
+   - Node spacing must allow **easy scanning** without zoom.
+   - Diagram should look balanced and well-clustered, similar in quality to professional architecture visuals.
+
+6. **Validation**
+   - Before outputting, mentally verify:
+     - No overlaps
+     - No extreme vertical stacks
+     - Colors consistent with category
+     - All labels readable
+     - Layout similar to clean, wide diagrams like high-quality architecture charts
+  `},
+           {
+            "text": `Below is the details of the hackathon see it, produce a **valid JSON object** containing 'nodes' and 'edges' for React Flow that clearly represents the system architecture.
+            ${detailes}`
+           }
+        ]
+      }
+    ],
+     generationConfig: {
+    responseMimeType: 'text/plain',
+    thinkingConfig: { thinkingBudget: 0 }
+  }
+   /* generationConfig: {
+      responseMimeType: 'text/plain',
+      
+      thinkingConfig: { thinkingBudget: 0 },
+      
+    }*/
+  };
+
+  try {
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_ID}:${GENERATE_CONTENT_API}?key=${GEMINI_API_KEY}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      }
+    );
+
+    const data = await response.json();
+
+    const generatedText = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+
+    const jsonString = generatedText.replaceAll("```json\n", "").replaceAll("```", "");
+const parsedJson = JSON.parse(jsonString);
+
+    return res.json(parsedJson);
+  } catch (err) {
+    console.error('Error:', err.message);
+    res.status(500).json({ error: 'Something went wrong while processing the response.' });
+  }
+});
+
+
+
+
 
 app.listen(port, () => {
   console.log(`App is listening on port ${port}`)
