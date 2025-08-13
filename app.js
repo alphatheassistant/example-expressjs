@@ -346,7 +346,7 @@ Produce a **React Flow JSON** output that accurately represents the operational 
 A **React Flow JSON** object representing the full flow of the described project — clean, color-coded, well-spaced, with logical data movement and no extra content outside of the provided JSON details.`
 },
            {
-            "text": `Below is the details of the hackathon see it, produce a **valid JSON object** containing 'nodes' and 'edges' for React Flow that clearly represents the system architecture.
+            "text": `
             ${detailes}`
            }
         ]
