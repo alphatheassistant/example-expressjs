@@ -422,7 +422,7 @@ console.log(detailes);
       {
         role: 'user',
          "parts": [
-           {"text": `${newhuehueprompt}`},
+           {"text": `${huehueprompt}`},
            {
             "text": `${JSON.stringify(detailes)}`
            }
