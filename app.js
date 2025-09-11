@@ -138,7 +138,17 @@ const authenticateUser = async (req, res, next) => {
       return res.status(401).json({ error: 'Invalid or expired token. Please log in again.' });
     }
 
+    // Create user-authenticated Supabase client for RLS
+    req.userSupabase = createClient(SUPABASE_URL, process.env.SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpyeXB1dG1jenJtaXR2cm1iaWp6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA5NDkxMjUsImV4cCI6MjA2NjUyNTEyNX0.2xjvbSmJdyTp3GBo_jbN4TCUqzDN1v4FEaM8ZgxFLtQ", {
+      global: {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      }
+    });
+
     req.user = user;
+    req.userToken = token;
     console.debug(`User authenticated: ${user.email}`);
     next();
   } catch (error) {
@@ -332,13 +342,8 @@ app.get('/api/user/profile', authenticateUser, async (req, res) => {
 // Get user's saved ideas - Simple like old code
 app.get('/api/saved-ideas', authenticateUser, async (req, res) => {
   try {
-    const token = req.headers.authorization?.split(' ')[1];
-    if (!token) return res.status(401).json({ error: 'Missing token' });
-
-    // run queries as the user (so RLS works)
-    supabase.auth.setAuth(token); 
     console.log(req.user.id)
-    const { data, error } = await supabase
+    const { data, error } = await req.userSupabase
       .from('saved_ideas')
       .select('*')
       .eq('user_id', req.user.id)
@@ -349,7 +354,7 @@ app.get('/api/saved-ideas', authenticateUser, async (req, res) => {
       return res.status(500).json({ error: 'Failed to fetch saved ideas' });
     }
 
-    res.json(data || []);
+    res.json({ data: data || [] });
   } catch (error) {
     console.error('Saved ideas endpoint error:', error);
     res.status(500).json({ error: 'Internal server error' });
