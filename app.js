@@ -60,7 +60,6 @@ const aiLimiter = rateLimit({
 });
 
 app.use(generalLimiter);
-app.use(express.json({ limit: '10mb' }));
 
 // Environment Variables Validation
 const requiredEnvVars = ['SUPABASE_URL', 'SUPABASE_SERVICE_KEY', 'GEMINI_API_KEY'];
