@@ -180,6 +180,57 @@ app.get('/', (req, res) => {
 
 // Remove the duplicate health endpoint since we moved it to the end
 
+// Simple test endpoint (no auth required)
+app.get('/test', async (req, res) => {
+  try {
+    console.log('Test endpoint hit');
+    const { data, error } = await supabase
+      .from('hackathons')
+      .select('count')
+      .limit(1);
+    
+    if (error) {
+      console.error('Database connection test failed:', error);
+      return res.json({ 
+        status: 'error', 
+        message: 'Database connection failed',
+        error: error.message 
+      });
+    }
+    
+    res.json({ 
+      status: 'success', 
+      message: 'Server and database working!',
+      timestamp: new Date().toISOString(),
+      database_connected: true
+    });
+  } catch (error) {
+    console.error('Test endpoint error:', error);
+    res.json({ 
+      status: 'error', 
+      message: 'Server test failed',
+      error: error.message 
+    });
+  }
+});
+
+// Authentication test endpoint
+app.get('/test-auth', authenticateUser, async (req, res) => {
+  try {
+    res.json({
+      status: 'success',
+      message: 'Authentication working!',
+      user: {
+        id: req.user.id,
+        email: req.user.email
+      },
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Auth test failed' });
+  }
+});
+
 // Get all hackathons (public)
 app.get('/api/hackathons', async (req, res) => {
   try {
@@ -281,8 +332,14 @@ app.get('/api/user/profile', authenticateUser, async (req, res) => {
 // Get user's saved ideas
 app.get('/api/saved-ideas', authenticateUser, async (req, res) => {
   try {
+    console.log('=== SAVED IDEAS ENDPOINT ===');
+    console.log('User ID:', req.user?.id);
+    console.log('User Email:', req.user?.email);
+    
     const { page = 1, limit = 20 } = req.query;
     const offset = (page - 1) * limit;
+
+    console.log('Query params:', { page, limit, offset });
 
     const { data, error, count } = await supabase
       .from('saved_ideas')
@@ -291,22 +348,40 @@ app.get('/api/saved-ideas', authenticateUser, async (req, res) => {
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1);
 
+    console.log('Database response:');
+    console.log('- Data count:', data?.length || 0);
+    console.log('- Total count:', count);
+    console.log('- Error:', error);
+    console.log('- Data sample:', data?.[0] || 'No data');
+
     if (error) {
       console.error('Error fetching saved ideas:', error);
-      return res.status(500).json({ error: 'Failed to fetch saved ideas' });
+      return res.status(500).json({ error: 'Failed to fetch saved ideas', details: error.message });
     }
 
-    res.json({
+    const response = {
       data: data || [],
       pagination: {
         page: parseInt(page),
         limit: parseInt(limit),
         total: count
+      },
+      debug: {
+        user_id: req.user.id,
+        query_params: { page, limit, offset },
+        database_count: data?.length || 0
       }
-    });
+    };
+
+    console.log('Sending response:', JSON.stringify(response, null, 2));
+    res.json(response);
   } catch (error) {
     console.error('Saved ideas endpoint error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ 
+      error: 'Internal server error', 
+      details: error.message,
+      stack: error.stack 
+    });
   }
 });
 
@@ -408,30 +483,51 @@ app.post('/api/bookmark-idea', authenticateUser, async (req, res) => {
 // Get user's hackathons
 app.get('/api/user/hackathons', authenticateUser, async (req, res) => {
   try {
+    console.log('=== USER HACKATHONS ENDPOINT ===');
+    console.log('User ID:', req.user?.id);
+    
     const { data: registrations, error: regError } = await supabase
       .from('user_hackathon_registrations')
       .select('hackathon_id, status, registered_at')
       .eq('user_id', req.user.id);
 
+    console.log('Registrations query result:');
+    console.log('- Count:', registrations?.length || 0);
+    console.log('- Error:', regError);
+    console.log('- Sample:', registrations?.[0] || 'No registrations');
+
     if (regError) {
       console.error('Error fetching user registrations:', regError);
-      return res.status(500).json({ error: 'Failed to fetch user hackathons' });
+      return res.status(500).json({ error: 'Failed to fetch user hackathons', details: regError.message });
     }
 
     if (!registrations?.length) {
-      return res.json({ data: [] });
+      console.log('No registrations found, returning empty array');
+      return res.json({ 
+        data: [], 
+        debug: { 
+          user_id: req.user.id, 
+          registrations_count: 0 
+        } 
+      });
     }
 
     const hackathonIds = registrations.map(r => r.hackathon_id);
+    console.log('Fetching hackathons for IDs:', hackathonIds);
+    
     const { data: hackathons, error: hackError } = await supabase
       .from('hackathons')
       .select('*')
       .in('id', hackathonIds)
       .order('start_date', { ascending: true });
 
+    console.log('Hackathons query result:');
+    console.log('- Count:', hackathons?.length || 0);
+    console.log('- Error:', hackError);
+
     if (hackError) {
       console.error('Error fetching hackathon details:', hackError);
-      return res.status(500).json({ error: 'Failed to fetch hackathon details' });
+      return res.status(500).json({ error: 'Failed to fetch hackathon details', details: hackError.message });
     }
 
     // Combine registration info with hackathon data
@@ -444,10 +540,22 @@ app.get('/api/user/hackathons', authenticateUser, async (req, res) => {
       };
     });
 
-    res.json({ data: result });
+    console.log('Final result count:', result.length);
+    res.json({ 
+      data: result,
+      debug: {
+        user_id: req.user.id,
+        registrations_count: registrations.length,
+        hackathons_count: hackathons.length,
+        final_count: result.length
+      }
+    });
   } catch (error) {
     console.error('User hackathons endpoint error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ 
+      error: 'Internal server error', 
+      details: error.message 
+    });
   }
 });
 
@@ -1010,11 +1118,38 @@ console.log('🚀 Starting Hackathon Vibe Generator API v2.0.0...');
 console.log(`📍 Port: ${port}`);
 console.log(`🌐 Environment: ${process.env.NODE_ENV || 'development'}`);
 
-const server = app.listen(port, '0.0.0.0', () => {
+// Test database connection on startup
+const testDatabaseConnection = async () => {
+  try {
+    console.log('🔍 Testing database connection...');
+    const { data, error } = await supabase
+      .from('hackathons')
+      .select('count')
+      .limit(1);
+    
+    if (error) {
+      console.error('❌ Database connection failed:', error.message);
+      return false;
+    }
+    
+    console.log('✅ Database connection successful');
+    return true;
+  } catch (error) {
+    console.error('❌ Database connection test failed:', error.message);
+    return false;
+  }
+};
+
+const server = app.listen(port, '0.0.0.0', async () => {
   console.log(`✅ Server running on port ${port}`);
   console.log(`📡 Health check: http://localhost:${port}/health`);
   console.log(`🎯 API Root: http://localhost:${port}/`);
+  console.log(`🔗 Test: http://localhost:${port}/test`);
+  console.log(`🔐 Auth Test: http://localhost:${port}/test-auth`);
   console.log(`🔗 Hackathons: http://localhost:${port}/api/hackathons`);
+  
+  // Test database after server starts
+  await testDatabaseConnection();
 });
 
 server.on('error', (error) => {
