@@ -993,3 +993,5 @@ app.listen(port, () => {
   logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
   logger.info(`Log Level: ${logLevel}`);
 });
+
+module.exports = app;
