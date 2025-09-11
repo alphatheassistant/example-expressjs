@@ -269,7 +269,7 @@ app.get('/api/hackathons', async (req, res) => {
       return res.status(500).json({ error: 'Failed to fetch hackathons' });
     }
 
-    res.json(data || []);
+    res.json({data: data || []});
   } catch (error) {
     console.error('Hackathons endpoint error:', error);
     res.status(500).json({ error: 'Internal server error' });
@@ -285,7 +285,7 @@ app.get('/api/hackathons/:id', async (req, res) => {
       return res.status(400).json({ error: 'Invalid hackathon ID format' });
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await req.userSupabase
       .from('hackathons')
       .select('*')
       .eq('id', id)
