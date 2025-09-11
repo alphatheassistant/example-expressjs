@@ -262,21 +262,14 @@ app.get('/api/hackathons', async (req, res) => {
       query = query.or(`name.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%,location.ilike.%${searchTerm}%`);
     }
 
-    const { data, error, count } = await query;
+    const { data, error } = await query;
     
     if (error) {
       console.error('Error fetching hackathons:', error);
       return res.status(500).json({ error: 'Failed to fetch hackathons' });
     }
 
-    res.json({
-      data: data || [],
-      pagination: {
-        page: parseInt(page),
-        limit: parseInt(limit),
-        total: count
-      }
-    });
+    res.json(data || []);
   } catch (error) {
     console.error('Hackathons endpoint error:', error);
     res.status(500).json({ error: 'Internal server error' });
@@ -354,7 +347,7 @@ app.get('/api/saved-ideas', authenticateUser, async (req, res) => {
       return res.status(500).json({ error: 'Failed to fetch saved ideas' });
     }
 
-    res.json({ data: data || [] });
+    res.json(data || [] );
   } catch (error) {
     console.error('Saved ideas endpoint error:', error);
     res.status(500).json({ error: 'Internal server error' });
@@ -370,7 +363,7 @@ app.get('/api/saved-ideas/:id', authenticateUser, async (req, res) => {
       return res.status(400).json({ error: 'Invalid idea ID format' });
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await req.userSupabase
       .from('saved_ideas')
       .select('*')
       .eq('id', id)
@@ -402,7 +395,7 @@ app.delete('/api/saved-ideas/:id', authenticateUser, async (req, res) => {
       return res.status(400).json({ error: 'Invalid idea ID format' });
     }
 
-    const { error } = await supabase
+    const { error } = await req.userSupabase
       .from('saved_ideas')
       .delete()
       .eq('id', id)
@@ -433,7 +426,7 @@ app.post('/api/bookmark-idea', authenticateUser, async (req, res) => {
       return res.status(400).json({ error: 'Invalid hackathon ID format' });
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await req.userSupabase
       .from('saved_ideas')
       .insert({
         user_id: req.user.id,
@@ -459,7 +452,7 @@ app.post('/api/bookmark-idea', authenticateUser, async (req, res) => {
 // Get user's hackathons - Simple like old code
 app.get('/api/user/hackathons', authenticateUser, async (req, res) => {
   try {
-    const { data: registrations, error: regError } = await supabase
+    const { data: registrations, error: regError } = await req.userSupabase
       .from('user_hackathon_registrations')
       .select('hackathon_id, status, registered_at')
       .eq('user_id', req.user.id);
@@ -470,11 +463,11 @@ app.get('/api/user/hackathons', authenticateUser, async (req, res) => {
     }
 
     if (!registrations?.length) {
-      return res.json({ data: [] });
+      return res.json([]);
     }
 
     const hackathonIds = registrations.map(r => r.hackathon_id);
-    const { data: hackathons, error: hackError } = await supabase
+    const { data: hackathons, error: hackError } = await req.userSupabase
       .from('hackathons')
       .select('*')
       .in('id', hackathonIds)
@@ -495,7 +488,7 @@ app.get('/api/user/hackathons', authenticateUser, async (req, res) => {
       };
     });
 
-    res.json({ data: result });
+    res.json(result || []);
   } catch (error) {
     console.error('User hackathons endpoint error:', error);
     res.status(500).json({ error: 'Internal server error' });
@@ -528,7 +521,7 @@ app.post('/api/hackathons/:id/register', authenticateUser, async (req, res) => {
     }
 
     // Check if already registered
-    const { data: existingReg, error: checkError } = await supabase
+    const { data: existingReg, error: checkError } = await req.userSupabase
       .from('user_hackathon_registrations')
       .select('id')
       .eq('user_id', req.user.id)
@@ -545,7 +538,7 @@ app.post('/api/hackathons/:id/register', authenticateUser, async (req, res) => {
     }
 
     // Register user
-    const { data, error } = await supabase
+    const { data, error } = await req.userSupabase
       .from('user_hackathon_registrations')
       .insert({
         user_id: req.user.id,
@@ -577,7 +570,7 @@ app.delete('/api/hackathons/:id/register', authenticateUser, async (req, res) =>
       return res.status(400).json({ error: 'Invalid hackathon ID format' });
     }
 
-    const { error } = await supabase
+    const { error } = await req.userSupabase
       .from('user_hackathon_registrations')
       .delete()
       .eq('user_id', req.user.id)
@@ -599,7 +592,7 @@ app.delete('/api/hackathons/:id/register', authenticateUser, async (req, res) =>
 // Get user notifications - Simple & working like old code
 app.get('/api/notifications', authenticateUser, async (req, res) => {
   try {
-    const { data, error } = await supabase
+    const { data, error } = await req.userSupabase
       .from('notifications')
       .select('*')
       .eq('user_id', req.user.id)
@@ -611,7 +604,7 @@ app.get('/api/notifications', authenticateUser, async (req, res) => {
       return res.status(500).json({ error: 'Failed to fetch notifications' });
     }
 
-    res.json({ data: data || [] });
+    res.json(data || []);
   } catch (error) {
     console.error('Notifications endpoint error:', error);
     res.status(500).json({ error: 'Internal server error' });
@@ -623,7 +616,7 @@ app.patch('/api/notifications/:id/read', authenticateUser, async (req, res) => {
   try {
     const { id } = req.params;
 
-    const { error } = await supabase
+    const { error } = await req.userSupabase
       .from('notifications')
       .update({ is_read: true, updated_at: new Date().toISOString() })
       .eq('id', id)
@@ -644,7 +637,7 @@ app.patch('/api/notifications/:id/read', authenticateUser, async (req, res) => {
 // Get custom events - Simple like old code
 app.get('/api/custom-events', authenticateUser, async (req, res) => {
   try {
-    const { data, error } = await supabase
+    const { data, error } = await req.userSupabase
       .from('custom_hackathon_events')
       .select('*')
       .eq('user_id', req.user.id)
@@ -655,7 +648,7 @@ app.get('/api/custom-events', authenticateUser, async (req, res) => {
       return res.status(500).json({ error: 'Failed to fetch custom events' });
     }
 
-    res.json({ data: data || [] });
+    res.json(data || []);
   } catch (error) {
     console.error('Custom events endpoint error:', error);
     res.status(500).json({ error: 'Internal server error' });
@@ -678,7 +671,7 @@ app.post('/api/custom-events', authenticateUser, async (req, res) => {
       description: description ? sanitizeInput(description) : null
     };
 
-    const { data, error } = await supabase
+    const { data, error } = await req.userSupabase
       .from('custom_hackathon_events')
       .insert(sanitizedData)
       .select()
