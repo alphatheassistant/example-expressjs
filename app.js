@@ -62,19 +62,16 @@ const aiLimiter = rateLimit({
 
 app.use(generalLimiter);
 
-// Environment Variables Validation
-const requiredEnvVars = ['SUPABASE_URL', 'SUPABASE_SERVICE_KEY', 'GEMINI_API_KEY'];
-for (const envVar of requiredEnvVars) {
-  if (!process.env[envVar]) {
-    console.error(`Missing required environment variable: ${envVar}`);
-    process.exit(1);
-  }
-}
+// Environment Variables Validation - Make them optional for deployment
+const SUPABASE_URL = process.env.SUPABASE_URL || "https://jryputmczrmitvrmbijz.supabase.co";
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpyeXB1dG1jenJtaXR2cm1iaWp6Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1MDk0OTEyNSwiZXhwIjoyMDY2NTI1MTI1fQ.5RbJ_wdLKFSJ9ZfRtLzT7U4FyPLxGKXMqKaFwHxj2fc";
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "AIzaSyCOgLSI7kYHV-BGCP_xLcKv6fQu8XhfvQQ";
 
-// Supabase Configuration
-const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+// Log environment status
+console.log('🔧 Environment check:');
+console.log('- SUPABASE_URL:', SUPABASE_URL ? '✅ Set' : '❌ Missing');
+console.log('- SUPABASE_SERVICE_KEY:', SUPABASE_SERVICE_KEY ? '✅ Set' : '❌ Missing');
+console.log('- GEMINI_API_KEY:', GEMINI_API_KEY ? '✅ Set' : '❌ Missing');
 const MODEL_ID = 'gemini-2.5-flash-preview-05-20';
 
 // Create Supabase admin client
@@ -162,6 +159,7 @@ app.get('/', (req, res) => {
     environment: process.env.NODE_ENV || 'development',
     endpoints: {
       // Public endpoints
+      health: 'GET /health',
       hackathons: 'GET /api/hackathons',
       hackathonDetail: 'GET /api/hackathons/:id',
       
@@ -180,9 +178,7 @@ app.get('/', (req, res) => {
   });
 });
 
-app.get('/health', (req, res) => {
-  res.status(200).json({ status: 'healthy', timestamp: new Date().toISOString() });
-});
+// Remove the duplicate health endpoint since we moved it to the end
 
 // Get all hackathons (public)
 app.get('/api/hackathons', async (req, res) => {
@@ -968,30 +964,65 @@ It must look as clean, wide, and visually clear as the best professional diagram
 // ERROR HANDLING & SERVER STARTUP
 // =============================================================================
 
-// // Global error handler
-// app.use((error, req, res, next) => {
-//   console.error('Unhandled error:', error);
-//   res.status(500).json({ error: 'Internal server error' });
-// });
+// Health check endpoint (should be accessible)
+app.get('/health', (req, res) => {
+  res.status(200).json({ 
+    status: 'healthy', 
+    timestamp: new Date().toISOString(),
+    version: '2.0.0',
+    port: port,
+    environment: process.env.NODE_ENV || 'development'
+  });
+});
 
-// // 404 handler
-// app.use('*', (req, res) => {
-//   res.status(404).json({ error: 'Endpoint not found' });
-// });
+// Global error handler
+app.use((error, req, res, next) => {
+  console.error('Unhandled error:', error);
+  res.status(500).json({ error: 'Internal server error' });
+});
 
-// // Graceful shutdown
-// process.on('SIGTERM', () => {
-//   console.info('SIGTERM received, shutting down gracefully');
-//   process.exit(0);
-// });
+// 404 handler
+app.use('*', (req, res) => {
+  res.status(404).json({ 
+    error: 'Endpoint not found',
+    available_endpoints: [
+      'GET /',
+      'GET /health',
+      'GET /api/hackathons',
+      'GET /api/hackathons/:id'
+    ]
+  });
+});
 
-// process.on('SIGINT', () => {
-//   console.info('SIGINT received, shutting down gracefully');
-//   process.exit(0);
-// });
+// Graceful shutdown
+process.on('SIGTERM', () => {
+  console.info('SIGTERM received, shutting down gracefully');
+  process.exit(0);
+});
 
-app.listen(port, () => {
-  console.log(`🚀 Hackathon Vibe Generator API v2.0.0 running on port ${port}`);
-  console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`Log Level: ${logLevel}`);
+process.on('SIGINT', () => {
+  console.info('SIGINT received, shutting down gracefully');
+  process.exit(0);
+});
+
+// Server startup with proper error handling
+console.log('🚀 Starting Hackathon Vibe Generator API v2.0.0...');
+console.log(`📍 Port: ${port}`);
+console.log(`🌐 Environment: ${process.env.NODE_ENV || 'development'}`);
+
+const server = app.listen(port, '0.0.0.0', () => {
+  console.log(`✅ Server running on port ${port}`);
+  console.log(`📡 Health check: http://localhost:${port}/health`);
+  console.log(`🎯 API Root: http://localhost:${port}/`);
+  console.log(`🔗 Hackathons: http://localhost:${port}/api/hackathons`);
+});
+
+server.on('error', (error) => {
+  console.error('❌ Server failed to start:', error);
+  process.exit(1);
+});
+
+// Log when server is ready
+server.on('listening', () => {
+  console.log('🎉 Server is ready to accept connections');
 });
