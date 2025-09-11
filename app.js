@@ -136,15 +136,15 @@ const authenticateUser = async (req, res, next) => {
     const { data: { user }, error } = await supabase.auth.getUser(token);
     
     if (error || !user) {
-      logger.warn(`Authentication failed for token: ${token.substring(0, 10)}...`);
+      console.warn(`Authentication failed for token: ${token.substring(0, 10)}...`);
       return res.status(401).json({ error: 'Invalid or expired token. Please log in again.' });
     }
 
     req.user = user;
-    logger.debug(`User authenticated: ${user.email}`);
+    console.debug(`User authenticated: ${user.email}`);
     next();
   } catch (error) {
-    logger.error('Authentication error:', error);
+    console.error('Authentication error:', error);
     res.status(401).json({ error: 'Authentication failed' });
   }
 };
@@ -207,7 +207,7 @@ app.get('/api/hackathons', async (req, res) => {
     const { data, error, count } = await query;
     
     if (error) {
-      logger.error('Error fetching hackathons:', error);
+      console.error('Error fetching hackathons:', error);
       return res.status(500).json({ error: 'Failed to fetch hackathons' });
     }
 
@@ -220,7 +220,7 @@ app.get('/api/hackathons', async (req, res) => {
       }
     });
   } catch (error) {
-    logger.error('Hackathons endpoint error:', error);
+    console.error('Hackathons endpoint error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -241,7 +241,7 @@ app.get('/api/hackathons/:id', async (req, res) => {
       .maybeSingle();
 
     if (error) {
-      logger.error('Error fetching hackathon details:', error);
+      console.error('Error fetching hackathon details:', error);
       return res.status(500).json({ error: 'Failed to fetch hackathon details' });
     }
 
@@ -251,7 +251,7 @@ app.get('/api/hackathons/:id', async (req, res) => {
 
     res.json(data);
   } catch (error) {
-    logger.error('Hackathon detail endpoint error:', error);
+    console.error('Hackathon detail endpoint error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -270,13 +270,13 @@ app.get('/api/user/profile', authenticateUser, async (req, res) => {
       .maybeSingle();
 
     if (error) {
-      logger.error('Error fetching user profile:', error);
+      console.error('Error fetching user profile:', error);
       return res.status(500).json({ error: 'Failed to fetch user profile' });
     }
 
     res.json(data || { id: req.user.id, email: req.user.email });
   } catch (error) {
-    logger.error('User profile endpoint error:', error);
+    console.error('User profile endpoint error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -295,7 +295,7 @@ app.get('/api/saved-ideas', authenticateUser, async (req, res) => {
       .range(offset, offset + limit - 1);
 
     if (error) {
-      logger.error('Error fetching saved ideas:', error);
+      console.error('Error fetching saved ideas:', error);
       return res.status(500).json({ error: 'Failed to fetch saved ideas' });
     }
 
@@ -308,7 +308,7 @@ app.get('/api/saved-ideas', authenticateUser, async (req, res) => {
       }
     });
   } catch (error) {
-    logger.error('Saved ideas endpoint error:', error);
+    console.error('Saved ideas endpoint error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -330,7 +330,7 @@ app.get('/api/saved-ideas/:id', authenticateUser, async (req, res) => {
       .maybeSingle();
 
     if (error) {
-      logger.error('Error fetching saved idea:', error);
+      console.error('Error fetching saved idea:', error);
       return res.status(500).json({ error: 'Failed to fetch saved idea' });
     }
 
@@ -340,7 +340,7 @@ app.get('/api/saved-ideas/:id', authenticateUser, async (req, res) => {
 
     res.json(data);
   } catch (error) {
-    logger.error('Saved idea detail endpoint error:', error);
+    console.error('Saved idea detail endpoint error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -361,13 +361,13 @@ app.delete('/api/saved-ideas/:id', authenticateUser, async (req, res) => {
       .eq('user_id', req.user.id);
 
     if (error) {
-      logger.error('Error deleting saved idea:', error);
+      console.error('Error deleting saved idea:', error);
       return res.status(500).json({ error: 'Failed to delete saved idea' });
     }
 
     res.json({ message: 'Saved idea deleted successfully' });
   } catch (error) {
-    logger.error('Delete saved idea endpoint error:', error);
+    console.error('Delete saved idea endpoint error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -396,14 +396,14 @@ app.post('/api/bookmark-idea', authenticateUser, async (req, res) => {
       .single();
 
     if (error) {
-      logger.error('Error bookmarking idea:', error);
+      console.error('Error bookmarking idea:', error);
       return res.status(500).json({ error: 'Failed to bookmark idea' });
     }
 
-    logger.info(`User ${req.user.email} bookmarked an idea`);
+    console.info(`User ${req.user.email} bookmarked an idea`);
     res.status(201).json(data);
   } catch (error) {
-    logger.error('Bookmark idea endpoint error:', error);
+    console.error('Bookmark idea endpoint error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -417,7 +417,7 @@ app.get('/api/user/hackathons', authenticateUser, async (req, res) => {
       .eq('user_id', req.user.id);
 
     if (regError) {
-      logger.error('Error fetching user registrations:', regError);
+      console.error('Error fetching user registrations:', regError);
       return res.status(500).json({ error: 'Failed to fetch user hackathons' });
     }
 
@@ -433,7 +433,7 @@ app.get('/api/user/hackathons', authenticateUser, async (req, res) => {
       .order('start_date', { ascending: true });
 
     if (hackError) {
-      logger.error('Error fetching hackathon details:', hackError);
+      console.error('Error fetching hackathon details:', hackError);
       return res.status(500).json({ error: 'Failed to fetch hackathon details' });
     }
 
@@ -449,7 +449,7 @@ app.get('/api/user/hackathons', authenticateUser, async (req, res) => {
 
     res.json({ data: result });
   } catch (error) {
-    logger.error('User hackathons endpoint error:', error);
+    console.error('User hackathons endpoint error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -471,7 +471,7 @@ app.post('/api/hackathons/:id/register', authenticateUser, async (req, res) => {
       .maybeSingle();
 
     if (hackError) {
-      logger.error('Error checking hackathon:', hackError);
+      console.error('Error checking hackathon:', hackError);
       return res.status(500).json({ error: 'Failed to register for hackathon' });
     }
 
@@ -488,7 +488,7 @@ app.post('/api/hackathons/:id/register', authenticateUser, async (req, res) => {
       .maybeSingle();
 
     if (checkError) {
-      logger.error('Error checking existing registration:', checkError);
+      console.error('Error checking existing registration:', checkError);
       return res.status(500).json({ error: 'Failed to register for hackathon' });
     }
 
@@ -508,14 +508,14 @@ app.post('/api/hackathons/:id/register', authenticateUser, async (req, res) => {
       .single();
 
     if (error) {
-      logger.error('Error registering for hackathon:', error);
+      console.error('Error registering for hackathon:', error);
       return res.status(500).json({ error: 'Failed to register for hackathon' });
     }
 
-    logger.info(`User ${req.user.email} registered for hackathon ${hackathon.name}`);
+    console.info(`User ${req.user.email} registered for hackathon ${hackathon.name}`);
     res.status(201).json(data);
   } catch (error) {
-    logger.error('Hackathon registration endpoint error:', error);
+    console.error('Hackathon registration endpoint error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -536,14 +536,14 @@ app.delete('/api/hackathons/:id/register', authenticateUser, async (req, res) =>
       .eq('hackathon_id', id);
 
     if (error) {
-      logger.error('Error unregistering from hackathon:', error);
+      console.error('Error unregistering from hackathon:', error);
       return res.status(500).json({ error: 'Failed to unregister from hackathon' });
     }
 
-    logger.info(`User ${req.user.email} unregistered from hackathon ${id}`);
+    console.info(`User ${req.user.email} unregistered from hackathon ${id}`);
     res.json({ message: 'Successfully unregistered from hackathon' });
   } catch (error) {
-    logger.error('Hackathon unregistration endpoint error:', error);
+    console.error('Hackathon unregistration endpoint error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -568,7 +568,7 @@ app.get('/api/notifications', authenticateUser, async (req, res) => {
     const { data, error, count } = await query;
 
     if (error) {
-      logger.error('Error fetching notifications:', error);
+      console.error('Error fetching notifications:', error);
       return res.status(500).json({ error: 'Failed to fetch notifications' });
     }
 
@@ -581,7 +581,7 @@ app.get('/api/notifications', authenticateUser, async (req, res) => {
       }
     });
   } catch (error) {
-    logger.error('Notifications endpoint error:', error);
+    console.error('Notifications endpoint error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -602,13 +602,13 @@ app.patch('/api/notifications/:id/read', authenticateUser, async (req, res) => {
       .eq('user_id', req.user.id);
 
     if (error) {
-      logger.error('Error marking notification as read:', error);
+      console.error('Error marking notification as read:', error);
       return res.status(500).json({ error: 'Failed to mark notification as read' });
     }
 
     res.json({ message: 'Notification marked as read' });
   } catch (error) {
-    logger.error('Mark notification read endpoint error:', error);
+    console.error('Mark notification read endpoint error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -623,13 +623,13 @@ app.get('/api/custom-events', authenticateUser, async (req, res) => {
       .order('date', { ascending: true });
 
     if (error) {
-      logger.error('Error fetching custom events:', error);
+      console.error('Error fetching custom events:', error);
       return res.status(500).json({ error: 'Failed to fetch custom events' });
     }
 
     res.json({ data: data || [] });
   } catch (error) {
-    logger.error('Custom events endpoint error:', error);
+    console.error('Custom events endpoint error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -657,14 +657,14 @@ app.post('/api/custom-events', authenticateUser, async (req, res) => {
       .single();
 
     if (error) {
-      logger.error('Error creating custom event:', error);
+      console.error('Error creating custom event:', error);
       return res.status(500).json({ error: 'Failed to create custom event' });
     }
 
-    logger.info(`User ${req.user.email} created custom event: ${title}`);
+    console.info(`User ${req.user.email} created custom event: ${title}`);
     res.status(201).json(data);
   } catch (error) {
-    logger.error('Create custom event endpoint error:', error);
+    console.error('Create custom event endpoint error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -683,7 +683,7 @@ app.post('/api/generate-idea', [aiLimiter, authenticateUser], async (req, res) =
     }
 
     const sanitizedDetails = sanitizeInput(details);
-    logger.info(`User ${req.user.email} is generating project ideas`);
+    console.info(`User ${req.user.email} is generating project ideas`);
 
     const payload = {
       contents: [
@@ -797,7 +797,7 @@ You will output **4 ideas** in this JSON structure:
     const data = await response.json();
 
     if (!response.ok) {
-      logger.error('Gemini API error:', data);
+      console.error('Gemini API error:', data);
       return res.status(500).json({ error: 'Failed to generate ideas' });
     }
 
@@ -806,14 +806,14 @@ You will output **4 ideas** in this JSON structure:
 
     try {
       const ideas = JSON.parse(jsonString);
-      logger.info(`Generated ${ideas.ideas?.length || 0} ideas for user ${req.user.email}`);
+      console.info(`Generated ${ideas.ideas?.length || 0} ideas for user ${req.user.email}`);
       res.json(ideas);
     } catch (parseError) {
-      logger.error('Error parsing generated ideas JSON:', parseError);
+      console.error('Error parsing generated ideas JSON:', parseError);
       res.status(500).json({ error: 'Failed to parse generated ideas' });
     }
   } catch (error) {
-    logger.error('Generate ideas endpoint error:', error);
+    console.error('Generate ideas endpoint error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -827,7 +827,7 @@ app.post('/api/generate-system-architecture', [aiLimiter, authenticateUser], asy
       return res.status(400).json({ error: 'Project details are required' });
     }
 
-    logger.info(`User ${req.user.email} is generating system architecture`);
+    console.info(`User ${req.user.email} is generating system architecture`);
 
     const prompt = `You are an expert solution architect and master diagram designer. 
 Your ONLY task is to generate a valid React Flow diagram JSON (nodes + edges) for the EXACT project described in the provided JSON input.  
@@ -942,7 +942,7 @@ It must look as clean, wide, and visually clear as the best professional diagram
     const data = await response.json();
 
     if (!response.ok) {
-      logger.error('Gemini API error for system architecture:', data);
+      console.error('Gemini API error for system architecture:', data);
       return res.status(500).json({ error: 'Failed to generate system architecture' });
     }
 
@@ -951,14 +951,14 @@ It must look as clean, wide, and visually clear as the best professional diagram
 
     try {
       const architecture = JSON.parse(jsonString);
-      logger.info(`Generated system architecture for user ${req.user.email}`);
+      console.info(`Generated system architecture for user ${req.user.email}`);
       res.json(architecture);
     } catch (parseError) {
-      logger.error('Error parsing generated system architecture JSON:', parseError);
+      console.error('Error parsing generated system architecture JSON:', parseError);
       res.status(500).json({ error: 'Failed to parse generated system architecture' });
     }
   } catch (error) {
-    logger.error('Generate system architecture endpoint error:', error);
+    console.error('Generate system architecture endpoint error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -969,7 +969,7 @@ It must look as clean, wide, and visually clear as the best professional diagram
 
 // // Global error handler
 // app.use((error, req, res, next) => {
-//   logger.error('Unhandled error:', error);
+//   console.error('Unhandled error:', error);
 //   res.status(500).json({ error: 'Internal server error' });
 // });
 
@@ -980,17 +980,17 @@ It must look as clean, wide, and visually clear as the best professional diagram
 
 // // Graceful shutdown
 // process.on('SIGTERM', () => {
-//   logger.info('SIGTERM received, shutting down gracefully');
+//   console.info('SIGTERM received, shutting down gracefully');
 //   process.exit(0);
 // });
 
 // process.on('SIGINT', () => {
-//   logger.info('SIGINT received, shutting down gracefully');
+//   console.info('SIGINT received, shutting down gracefully');
 //   process.exit(0);
 // });
 
 app.listen(port, () => {
-  logger.info(`🚀 Hackathon Vibe Generator API v2.0.0 running on port ${port}`);
-  logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
-  logger.info(`Log Level: ${logLevel}`);
+  console.log(`🚀 Hackathon Vibe Generator API v2.0.0 running on port ${port}`);
+  console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`Log Level: ${logLevel}`);
 });
