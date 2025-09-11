@@ -332,6 +332,7 @@ app.get('/api/user/profile', authenticateUser, async (req, res) => {
 // Get user's saved ideas - Simple like old code
 app.get('/api/saved-ideas', authenticateUser, async (req, res) => {
   try {
+    console.log(req.user.id)
     const { data, error } = await supabase
       .from('saved_ideas')
       .select('*')
