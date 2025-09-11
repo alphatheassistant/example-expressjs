@@ -338,7 +338,7 @@ app.get('/api/saved-ideas', authenticateUser, async (req, res) => {
       .select('*')
       .eq('user_id', req.user.id)
       .order('created_at', { ascending: false });
-
+     console.log(data)
     if (error) {
       console.error('Error fetching saved ideas:', error);
       return res.status(500).json({ error: 'Failed to fetch saved ideas' });
