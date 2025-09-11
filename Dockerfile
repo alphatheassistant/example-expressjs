@@ -2,7 +2,9 @@ FROM node:slim
 
 WORKDIR /app
 COPY . .
-RUN npm ci
+
+# Instead of npm ci (strict), use npm install (for auto lockfile update)
+RUN npm install
 
 ARG PORT
 EXPOSE ${PORT:-3000}
