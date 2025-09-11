@@ -329,59 +329,24 @@ app.get('/api/user/profile', authenticateUser, async (req, res) => {
   }
 });
 
-// Get user's saved ideas
+// Get user's saved ideas - Simple like old code
 app.get('/api/saved-ideas', authenticateUser, async (req, res) => {
   try {
-    console.log('=== SAVED IDEAS ENDPOINT ===');
-    console.log('User ID:', req.user?.id);
-    console.log('User Email:', req.user?.email);
-    
-    const { page = 1, limit = 20 } = req.query;
-    const offset = (page - 1) * limit;
-
-    console.log('Query params:', { page, limit, offset });
-
-    const { data, error, count } = await supabase
+    const { data, error } = await supabase
       .from('saved_ideas')
-      .select('*', { count: 'exact' })
+      .select('*')
       .eq('user_id', req.user.id)
-      .order('created_at', { ascending: false })
-      .range(offset, offset + limit - 1);
-
-    console.log('Database response:');
-    console.log('- Data count:', data?.length || 0);
-    console.log('- Total count:', count);
-    console.log('- Error:', error);
-    console.log('- Data sample:', data?.[0] || 'No data');
+      .order('created_at', { ascending: false });
 
     if (error) {
       console.error('Error fetching saved ideas:', error);
-      return res.status(500).json({ error: 'Failed to fetch saved ideas', details: error.message });
+      return res.status(500).json({ error: 'Failed to fetch saved ideas' });
     }
 
-    const response = {
-      data: data || [],
-      pagination: {
-        page: parseInt(page),
-        limit: parseInt(limit),
-        total: count
-      },
-      debug: {
-        user_id: req.user.id,
-        query_params: { page, limit, offset },
-        database_count: data?.length || 0
-      }
-    };
-
-    console.log('Sending response:', JSON.stringify(response, null, 2));
-    res.json(response);
+    res.json({ data: data || [] });
   } catch (error) {
     console.error('Saved ideas endpoint error:', error);
-    res.status(500).json({ 
-      error: 'Internal server error', 
-      details: error.message,
-      stack: error.stack 
-    });
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -480,54 +445,33 @@ app.post('/api/bookmark-idea', authenticateUser, async (req, res) => {
   }
 });
 
-// Get user's hackathons
+// Get user's hackathons - Simple like old code
 app.get('/api/user/hackathons', authenticateUser, async (req, res) => {
   try {
-    console.log('=== USER HACKATHONS ENDPOINT ===');
-    console.log('User ID:', req.user?.id);
-    
     const { data: registrations, error: regError } = await supabase
       .from('user_hackathon_registrations')
       .select('hackathon_id, status, registered_at')
       .eq('user_id', req.user.id);
 
-    console.log('Registrations query result:');
-    console.log('- Count:', registrations?.length || 0);
-    console.log('- Error:', regError);
-    console.log('- Sample:', registrations?.[0] || 'No registrations');
-
     if (regError) {
       console.error('Error fetching user registrations:', regError);
-      return res.status(500).json({ error: 'Failed to fetch user hackathons', details: regError.message });
+      return res.status(500).json({ error: 'Failed to fetch user hackathons' });
     }
 
     if (!registrations?.length) {
-      console.log('No registrations found, returning empty array');
-      return res.json({ 
-        data: [], 
-        debug: { 
-          user_id: req.user.id, 
-          registrations_count: 0 
-        } 
-      });
+      return res.json({ data: [] });
     }
 
     const hackathonIds = registrations.map(r => r.hackathon_id);
-    console.log('Fetching hackathons for IDs:', hackathonIds);
-    
     const { data: hackathons, error: hackError } = await supabase
       .from('hackathons')
       .select('*')
       .in('id', hackathonIds)
       .order('start_date', { ascending: true });
 
-    console.log('Hackathons query result:');
-    console.log('- Count:', hackathons?.length || 0);
-    console.log('- Error:', hackError);
-
     if (hackError) {
       console.error('Error fetching hackathon details:', hackError);
-      return res.status(500).json({ error: 'Failed to fetch hackathon details', details: hackError.message });
+      return res.status(500).json({ error: 'Failed to fetch hackathon details' });
     }
 
     // Combine registration info with hackathon data
@@ -540,22 +484,10 @@ app.get('/api/user/hackathons', authenticateUser, async (req, res) => {
       };
     });
 
-    console.log('Final result count:', result.length);
-    res.json({ 
-      data: result,
-      debug: {
-        user_id: req.user.id,
-        registrations_count: registrations.length,
-        hackathons_count: hackathons.length,
-        final_count: result.length
-      }
-    });
+    res.json({ data: result });
   } catch (error) {
     console.error('User hackathons endpoint error:', error);
-    res.status(500).json({ 
-      error: 'Internal server error', 
-      details: error.message 
-    });
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
@@ -653,52 +585,32 @@ app.delete('/api/hackathons/:id/register', authenticateUser, async (req, res) =>
   }
 });
 
-// Get user notifications
+// Get user notifications - Simple & working like old code
 app.get('/api/notifications', authenticateUser, async (req, res) => {
   try {
-    const { page = 1, limit = 20, unread_only = false } = req.query;
-    const offset = (page - 1) * limit;
-
-    let query = supabase
+    const { data, error } = await supabase
       .from('notifications')
-      .select('*', { count: 'exact' })
+      .select('*')
       .eq('user_id', req.user.id)
       .order('created_at', { ascending: false })
-      .range(offset, offset + limit - 1);
-
-    if (unread_only === 'true') {
-      query = query.eq('is_read', false);
-    }
-
-    const { data, error, count } = await query;
+      .limit(10);
 
     if (error) {
       console.error('Error fetching notifications:', error);
       return res.status(500).json({ error: 'Failed to fetch notifications' });
     }
 
-    res.json({
-      data: data || [],
-      pagination: {
-        page: parseInt(page),
-        limit: parseInt(limit),
-        total: count
-      }
-    });
+    res.json({ data: data || [] });
   } catch (error) {
     console.error('Notifications endpoint error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
 
-// Mark notification as read
+// Mark notification as read - Simple like old code
 app.patch('/api/notifications/:id/read', authenticateUser, async (req, res) => {
   try {
     const { id } = req.params;
-    
-    if (!validateUUID(id)) {
-      return res.status(400).json({ error: 'Invalid notification ID format' });
-    }
 
     const { error } = await supabase
       .from('notifications')
@@ -718,7 +630,7 @@ app.patch('/api/notifications/:id/read', authenticateUser, async (req, res) => {
   }
 });
 
-// Get custom events
+// Get custom events - Simple like old code
 app.get('/api/custom-events', authenticateUser, async (req, res) => {
   try {
     const { data, error } = await supabase
