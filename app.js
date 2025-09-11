@@ -9,18 +9,20 @@ const app = express();
 const port = process.env.PORT || 3000;
 
 // Security Configuration
-app.use(helmet({
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'"],
-      scriptSrc: ["'self'"],
-      imgSrc: ["'self'", "data:", "https:"],
-      connectSrc: ["'self'", "https:"],
-    },
-  },
-  crossOriginEmbedderPolicy: false
-}));
+// app.use(helmet({
+//   contentSecurityPolicy: {
+//     directives: {
+//       defaultSrc: ["'self'"],
+//       styleSrc: ["'self'", "'unsafe-inline'"],
+//       scriptSrc: ["'self'"],
+//       imgSrc: ["'self'", "data:", "https:"],
+//       connectSrc: ["'self'", "https:"],
+//     },
+//   },
+//   crossOriginEmbedderPolicy: false
+// }));
+
+app.use(express.json());
 
 // CORS Configuration
 const corsOptions = {
@@ -966,27 +968,27 @@ It must look as clean, wide, and visually clear as the best professional diagram
 // ERROR HANDLING & SERVER STARTUP
 // =============================================================================
 
-// Global error handler
-app.use((error, req, res, next) => {
-  logger.error('Unhandled error:', error);
-  res.status(500).json({ error: 'Internal server error' });
-});
+// // Global error handler
+// app.use((error, req, res, next) => {
+//   logger.error('Unhandled error:', error);
+//   res.status(500).json({ error: 'Internal server error' });
+// });
 
-// 404 handler
-app.use('*', (req, res) => {
-  res.status(404).json({ error: 'Endpoint not found' });
-});
+// // 404 handler
+// app.use('*', (req, res) => {
+//   res.status(404).json({ error: 'Endpoint not found' });
+// });
 
-// Graceful shutdown
-process.on('SIGTERM', () => {
-  logger.info('SIGTERM received, shutting down gracefully');
-  process.exit(0);
-});
+// // Graceful shutdown
+// process.on('SIGTERM', () => {
+//   logger.info('SIGTERM received, shutting down gracefully');
+//   process.exit(0);
+// });
 
-process.on('SIGINT', () => {
-  logger.info('SIGINT received, shutting down gracefully');
-  process.exit(0);
-});
+// process.on('SIGINT', () => {
+//   logger.info('SIGINT received, shutting down gracefully');
+//   process.exit(0);
+// });
 
 app.listen(port, () => {
   logger.info(`🚀 Hackathon Vibe Generator API v2.0.0 running on port ${port}`);
