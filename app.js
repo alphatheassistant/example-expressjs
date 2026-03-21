@@ -265,7 +265,7 @@ Remember: You are producing the **final polished architecture JSON**, not a draf
 It must look as clean, wide, and visually clear as the best professional diagrams — like the provided "good" reference screenshot — and NEVER like cramped, vertical, or messy layouts.`
 
 
-const GEMINI_API_KEY = "AIzaSyDRm8970zlbnTLzJOhoYEZtBqCdcWChNYM";
+const GEMINI_API_KEY = "AIzaSyDOxkRCCTLXyysOQTtn3C00GT6XYlGOITk";
 const MODEL_ID = 'gemini-2.5-flash-preview-05-20';
 const GENERATE_CONTENT_API = 'generateContent'; // non-streaming
 
