@@ -396,12 +396,12 @@ You will output **4 ideas** in this JSON structure:
         { role: 'system', content: systemContent },
         { role: 'user', content: userContent }
       ],
-      model: GROQ_MODEL_ID,
-      temperature: 0.6,
-      max_completion_tokens: 4096,
-      top_p: 0.95,
+      model: "llama-3.3-70b-versatile",
+      temperature: 1,
+      max_completion_tokens: 1024,
+      top_p: 1,
       stream: false,
-      reasoning_effort: 'none',
+      // reasoning_effort: 'none',
       response_format: { type: 'json_object' },
       stop: null
     };
