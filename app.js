@@ -509,13 +509,23 @@ You will output **4 ideas** in this JSON structure:
     console.log(data);
      console.log("/././../././././././././././.");
 
-    const generatedText = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
-    console.log(generatedText);
+    // const generatedText = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    // console.log(generatedText);
 
-    const jsonString = generatedText.replaceAll("```json\n", "").replaceAll("```", "");
-    const parsedJson = JSON.parse(jsonString);
+    // const jsonString = generatedText.replaceAll("```json\n", "").replaceAll("```", "");
+    // const parsedJson = JSON.parse(jsonString);
 
-    return res.json(parsedJson);
+    // return res.json(parsedJson);
+     const generatedText = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+
+  const jsonString = generatedText
+    .replaceAll("```json\n", "")
+    .replaceAll("```", "");
+
+  const parsedJson = JSON.parse(jsonString);
+
+  return res.json(parsedJson.projects || parsedJson);
+
   } catch (err) {
     console.error('Error:', err.message);
     res.status(500).json({ error: 'Something went wrong while processing the response.' });
