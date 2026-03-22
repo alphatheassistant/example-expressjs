@@ -266,7 +266,7 @@ It must look as clean, wide, and visually clear as the best professional diagram
 
 
 const GEMINI_API_KEY = process.env.GEM_API_KEY;
-const MODEL_ID = 'gemini-2.5-pro';
+const MODEL_ID = 'gemini-2.5-flash';
 const GENERATE_CONTENT_API = 'generateContent'; // non-streaming
 
 app.post('/generateidea', async (req, res) => {
@@ -369,9 +369,9 @@ You will output **4 ideas** in this JSON structure:
     ],
       "generationConfig": {
       "thinkingConfig": {
-        "thinkingLevel": "LOW",
+        "thinkingBudget": 0,
       },
-      "mediaResolution": "MEDIA_RESOLUTION_LOW",
+      // "mediaResolution": "MEDIA_RESOLUTION_LOW",
       "responseMimeType": "application/json",
       "responseSchema": {
           "type": "object",
