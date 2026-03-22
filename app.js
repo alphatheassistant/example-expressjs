@@ -265,8 +265,8 @@ Remember: You are producing the **final polished architecture JSON**, not a draf
 It must look as clean, wide, and visually clear as the best professional diagrams — like the provided "good" reference screenshot — and NEVER like cramped, vertical, or messy layouts.`
 
 
-const GEMINI_API_KEY = "AIzaSyDOxkRCCTLXyysOQTtn3C00GT6XYlGOITk";
-const MODEL_ID = 'gemini-2.5-flash-preview-05-20';
+const GEMINI_API_KEY = process.env.GEM_API_KEY;
+const MODEL_ID = 'gemini-3.1-pro-preview';
 const GENERATE_CONTENT_API = 'generateContent'; // non-streaming
 
 app.post('/generateidea', async (req, res) => {
@@ -370,10 +370,126 @@ You will output **4 ideas** in this JSON structure:
         ]
       }
     ],
-     generationConfig: {
-    responseMimeType: 'text/plain',
-    thinkingConfig: { thinkingBudget: 0 }
-  }
+      "generationConfig": {
+      "thinkingConfig": {
+        "thinkingLevel": "LOW",
+      },
+      "mediaResolution": "MEDIA_RESOLUTION_LOW",
+      "responseMimeType": "application/json",
+      "responseSchema": {
+          "type": "object",
+          "properties": {
+            "projects": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "problem_solved": {
+                    "type": "string"
+                  },
+                  "core_features": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "tech_stack": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "free_apis": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string"
+                        },
+                        "purpose": {
+                          "type": "string"
+                        },
+                        "link": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "name",
+                        "purpose",
+                        "link"
+                      ],
+                      "propertyOrdering": [
+                        "name",
+                        "purpose",
+                        "link"
+                      ]
+                    }
+                  },
+                  "bonus_features": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "theme_match_percent": {
+                    "type": "number"
+                  },
+                  "project_prompt": {
+                    "type": "string"
+                  },
+                  "complexity_level": {
+                    "type": "string",
+                    "enum": [
+                      "Beginner",
+                      "Intermediate",
+                      "Advanced"
+                    ]
+                  }
+                },
+                "required": [
+                  "title",
+                  "description",
+                  "problem_solved",
+                  "core_features",
+                  "tech_stack",
+                  "free_apis",
+                  "bonus_features",
+                  "theme_match_percent",
+                  "project_prompt",
+                  "complexity_level"
+                ],
+                "propertyOrdering": [
+                  "title",
+                  "description",
+                  "problem_solved",
+                  "core_features",
+                  "tech_stack",
+                  "free_apis",
+                  "bonus_features",
+                  "theme_match_percent",
+                  "project_prompt",
+                  "complexity_level"
+                ]
+              },
+              "minItems": 4,
+              "maxItems": 4
+            }
+          },
+          "required": [
+            "projects"
+          ],
+          "propertyOrdering": [
+            "projects"
+          ]
+        },
+    },
    /* generationConfig: {
       responseMimeType: 'text/plain',
       
@@ -393,11 +509,14 @@ You will output **4 ideas** in this JSON structure:
     );
 
     const data = await response.json();
+    console.log(data);
+     console.log("/././../././././././././././.");
 
     const generatedText = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    console.log(generatedText);
 
     const jsonString = generatedText.replaceAll("```json\n", "").replaceAll("```", "");
-const parsedJson = JSON.parse(jsonString);
+    const parsedJson = JSON.parse(jsonString);
 
     return res.json(parsedJson);
   } catch (err) {
