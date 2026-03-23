@@ -173,7 +173,7 @@ Each node should have:
 REMEMBER: You are producing the **final polished architecture JSON** — visually engaging, balanced, and accurate like a professional system design diagram.
 `
 
-const huehueprompt = `You are an expert solution architect and master diagram designer. 
+const huehuepromptooo = `You are an expert solution architect and master diagram designer. 
 Your ONLY task is to generate a valid React Flow diagram JSON (nodes + edges) for the EXACT project described in the provided JSON input.  
 Do NOT add or remove technologies, APIs, or components that are not in the given input. Follow these rules strictly:
 
@@ -263,6 +263,234 @@ Do NOT add or remove technologies, APIs, or components that are not in the given
 
 Remember: You are producing the **final polished architecture JSON**, not a draft. 
 It must look as clean, wide, and visually clear as the best professional diagrams — like the provided "good" reference screenshot — and NEVER like cramped, vertical, or messy layouts.`
+
+const huehueprompt = `You are a world-class solution architect and elite diagram designer specializing in React Flow systems.
+
+Your ONLY task is to generate a PERFECT, production-ready React Flow JSON (nodes + edges) based STRICTLY on the provided input JSON.
+
+DO NOT add, remove, rename, or assume anything outside the given data.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. INPUT INTERPRETATION (STRICT)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+You will receive:
+- title
+- free_apis [{ name, link, purpose }]
+- techStack []
+- description
+- core_features []
+- bonus_features []
+- problem_solved
+- project_prompt
+
+RULES:
+- EVERY API = one node
+- EVERY major tech/component = one node
+- CORE FLOW must be visually represented end-to-end
+- BONUS features = secondary/optional flows (use dashed edges)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+2. OUTPUT FORMAT (STRICT)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Return ONLY:
+
+{
+  "nodes": [...],
+  "edges": [...]
+}
+
+- No markdown
+- No explanation
+- Must be directly usable in React Flow
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+3. LAYOUT ENGINE (CRITICAL - MUST FOLLOW)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+You MUST compute positions using a GRID SYSTEM.
+
+Define:
+
+- horizontalGap = 220px
+- verticalGap = 140px
+- baseX = 0
+- baseY = 0
+
+LAYERS (LEFT → RIGHT):
+
+Layer 0: Input / UI
+Layer 1: Client Logic / State / Controllers
+Layer 2: Backend / API Gateway
+Layer 3: Processing / AI / Business Logic
+Layer 4: Database / Storage
+Layer 5: External APIs
+Layer 6: Output / Visualization / Reports
+
+Each node must be assigned a layer index.
+
+POSITION FORMULA:
+x = baseX + (layerIndex * horizontalGap)
+y = baseY + (indexWithinLayer * verticalGap)
+
+RULES:
+- Nodes in same layer stack vertically
+- Keep layer height balanced (avoid one long column)
+- If >5 nodes in a layer → split into sub-columns (shift x + 80px)
+- NEVER overlap nodes
+- TOTAL WIDTH must be maximized
+- TOTAL HEIGHT minimized
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+4. NODE DESIGN SYSTEM
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Each node MUST include:
+
+{
+  id: string,
+  type: "input" | "default" | "output",
+  position: { x, y },
+  data: { label: string },
+  style: { ... }
+}
+
+DYNAMIC NODE WIDTH:
+- label length < 12 → width: 140
+- label length 12–20 → width: 180
+- label > 20 → width: 220
+
+STYLE BASE:
+
+{
+  padding: 12,
+  borderRadius: 10,
+  fontSize: 13,
+  fontWeight: 600,
+  textAlign: "center",
+  border: "1px solid rgba(255,255,255,0.08)"
+}
+
+COLOR SYSTEM:
+
+Frontend/UI → '#4DA3FF'
+Backend/API → '#FFB347'
+AI/ML → '#FF6FB5'
+Database → '#C678DD'
+External APIs → '#6E6E6E'
+Queue/Event → '#6ECB63'
+DevOps → '#009688'
+
+TEXT COLOR:
+- Use "#FFFFFF" for dark nodes
+- Use "#000000" if background is light
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+5. EDGE SYSTEM (HIGHLY ADVANCED)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Each edge:
+
+{
+  id,
+  source,
+  target,
+  label,
+  type: "smoothstep",
+  animated: boolean,
+  style: { stroke, strokeWidth },
+  markerEnd: { type: "arrowclosed" }
+}
+
+EDGE TYPES:
+
+1. CRITICAL FLOW (user → backend → result)
+   - animated: true
+   - strokeWidth: 2.5
+   - solid line
+
+2. ASYNC / API CALL
+   - animated: true
+   - strokeDasharray: '6 3'
+
+3. OPTIONAL / BONUS FEATURE
+   - animated: false
+   - dashed
+
+4. STREAMING / REAL-TIME (VERY IMPORTANT)
+   - animated: true
+   - strokeWidth: 3
+   - label must include: "stream"
+
+COLOR RULE:
+- edge stroke = source node color
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+6. FLOW INTELLIGENCE (VERY IMPORTANT)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+You MUST model REAL data movement:
+
+- User Input → UI → State → Backend → Processing → DB/API → Response → UI
+
+- APIs MUST:
+  - be placed in RIGHTMOST external layer
+  - always be CALLED from backend or AI nodes (never directly from UI unless explicitly mentioned)
+
+- Databases:
+  - always between processing and output
+  - include both read + write edges when logical
+
+- AI:
+  - must sit between backend and output or backend and DB
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+7. EDGE ROUTING RULES (ANTI-MESS)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+- Prefer SHORT horizontal edges
+- Avoid diagonal chaos
+- No backward edges unless necessary
+- Minimize crossings:
+  - If crossing unavoidable → stagger Y positions
+- Keep flow LEFT → RIGHT dominant
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+8. VISUAL HIERARCHY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+- Core path = straight horizontal alignment
+- Secondary flows slightly above or below
+- External APIs slightly offset vertically for clarity
+- Important nodes centered in their layer
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+9. ANIMATION INTENT (FOR REACT FLOW UI)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+- Animated edges should visually represent:
+  - API calls flowing outward
+  - Responses flowing back
+- Streaming edges must feel continuous
+- Avoid over-animation (max 60% edges animated)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+10. STRICTNESS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+- DO NOT hallucinate components
+- DO NOT rename anything
+- USE exact names from input
+- INCLUDE all APIs
+- INCLUDE all major flows
+- OUTPUT must look like a CLEAN, MODERN, PROFESSIONAL system diagram
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+FINAL GOAL:
+Generate a visually balanced, horizontally wide, non-overlapping, production-grade architecture diagram JSON that looks like it was designed by a senior system architect at a top tech company.
+
+NO clutter. NO randomness. ONLY precision.
+`;
 
 
 const GEMINI_API_KEY = process.env.GEM_API_KEY;
