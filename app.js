@@ -41,7 +41,8 @@ app.post("/ttseleven", async (req, res) => {
   res.end();
 });
 
-app.post("/tts", async (req, res) => {
+
+app.post("/tts-stream", async (req, res) => {
   try {
     const { text } = req.body;
 
@@ -61,7 +62,6 @@ app.post("/tts", async (req, res) => {
             audio_encoding: "MP3",
             speaking_rate: 1,
           },
-          temperature: 1,
         }),
       }
     );
@@ -72,10 +72,11 @@ app.post("/tts", async (req, res) => {
       return res.status(500).send("TTS failed");
     }
 
+    res.setHeader("Content-Type", "audio/mpeg");
+    res.setHeader("Transfer-Encoding", "chunked");
+
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
-
-    let audioChunks = [];
 
     while (true) {
       const { done, value } = await reader.read();
@@ -83,34 +84,32 @@ app.post("/tts", async (req, res) => {
 
       const chunkStr = decoder.decode(value, { stream: true });
 
-      // ⚠️ split in case multiple JSON objects aaye
       const lines = chunkStr.split("\n").filter(Boolean);
 
       for (const line of lines) {
         try {
           const json = JSON.parse(line);
 
-          if (json.audio) {
-            const buffer = Buffer.from(json.audio, "base64");
-            audioChunks.push(buffer);
+          if (json.result?.audioContent) {
+            const buffer = Buffer.from(
+              json.result.audioContent,
+              "base64"
+            );
+
+            // 🔥 REAL STREAM
+            res.write(buffer);
           }
-        } catch (e) {
-          // ignore partial JSON
-        }
+        } catch (e) {}
       }
     }
 
-    const finalAudio = Buffer.concat(audioChunks);
-
-    res.setHeader("Content-Type", "audio/mpeg");
-    res.send(finalAudio);
+    res.end();
 
   } catch (err) {
     console.error(err);
     res.status(500).send("Server error");
   }
 });
-
 
 app.post("/chat", async (req, res) => {
   const { message } = req.body;
