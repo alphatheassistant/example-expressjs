@@ -67,25 +67,50 @@ app.post("/tts", async (req, res) => {
     );
 
     if (!response.ok || !response.body) {
-      const errText = await response.text();
-      console.error("Inworld error:", errText);
+      const err = await response.text();
+      console.error(err);
       return res.status(500).send("TTS failed");
     }
 
-    // 🔊 Important header
-    res.setHeader("Content-Type", "audio/mpeg");
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
 
-    // 🔥 STREAM audio chunks directly to client
-    for await (const chunk of response.body) {
-      res.write(chunk);
+    let audioChunks = [];
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      const chunkStr = decoder.decode(value, { stream: true });
+
+      // ⚠️ split in case multiple JSON objects aaye
+      const lines = chunkStr.split("\n").filter(Boolean);
+
+      for (const line of lines) {
+        try {
+          const json = JSON.parse(line);
+
+          if (json.audio) {
+            const buffer = Buffer.from(json.audio, "base64");
+            audioChunks.push(buffer);
+          }
+        } catch (e) {
+          // ignore partial JSON
+        }
+      }
     }
 
-    res.end();
+    const finalAudio = Buffer.concat(audioChunks);
+
+    res.setHeader("Content-Type", "audio/mpeg");
+    res.send(finalAudio);
+
   } catch (err) {
-    console.error("Server error:", err);
-    res.status(500).send("Internal server error");
+    console.error(err);
+    res.status(500).send("Server error");
   }
 });
+
 
 app.post("/chat", async (req, res) => {
   const { message } = req.body;
