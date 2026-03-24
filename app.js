@@ -54,7 +54,7 @@ app.post("/tts-stream", async (req, res) => {
       {
         method: "POST",
         headers: {
-          "Authorization": `Basic ${process.env.INWORLD_API_KEY}`,
+          "Authorization": `Basic ${INWORLD_API_KEY}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
