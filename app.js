@@ -7,7 +7,10 @@ const fetch = require('node-fetch');
 app.use(express.json());
 const GEMINI_API_KEY = process.env.GEM_API_KEY;
 const INWORLD_API_KEY = "OTdTYXNoZmRYb21hY0pDRlBTdldTRlp0" + "N01oc3RXUTE6dlV0V2puVGljRWdzeEdBekpsU2lQVFdQbmZKY" + "jJRYU1UOUJmU1BOZTJrWEttU/*/*1VFSVNkeVpmeGxHeUN3WjlNQQ==".replace("/*/*", "");
-app.use(cors());
+// app.use(cors());
+app.use(cors({
+  origin: "*", // ya specific: https://hack4vibe.vercel.app
+}));
 app.get('/', (req, res) => {
   res.json({
     message: 'Hello, world!',
@@ -51,7 +54,7 @@ app.post("/tts-stream", async (req, res) => {
       {
         method: "POST",
         headers: {
-          "Authorization": `Basic ${INWORLD_API_KEY}`,
+          "Authorization": `Basic ${process.env.INWORLD_API_KEY}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
@@ -75,14 +78,9 @@ app.post("/tts-stream", async (req, res) => {
     res.setHeader("Content-Type", "audio/mpeg");
     res.setHeader("Transfer-Encoding", "chunked");
 
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-
-      const chunkStr = decoder.decode(value, { stream: true });
+    // 🔥 Node stream (NOT getReader)
+    response.body.on("data", (chunk) => {
+      const chunkStr = chunk.toString();
 
       const lines = chunkStr.split("\n").filter(Boolean);
 
@@ -96,14 +94,20 @@ app.post("/tts-stream", async (req, res) => {
               "base64"
             );
 
-            // 🔥 REAL STREAM
-            res.write(buffer);
+            res.write(buffer); // 🔥 live audio push
           }
         } catch (e) {}
       }
-    }
+    });
 
-    res.end();
+    response.body.on("end", () => {
+      res.end();
+    });
+
+    response.body.on("error", (err) => {
+      console.error(err);
+      res.end();
+    });
 
   } catch (err) {
     console.error(err);
