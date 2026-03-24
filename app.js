@@ -5,13 +5,71 @@ const cors = require('cors');
 const fetch = require('node-fetch');
 //const cheerio = require('cheerio');
 app.use(express.json());
-
+const GEMINI_API_KEY = process.env.GEM_API_KEY;
 app.use(cors());
 app.get('/', (req, res) => {
   res.json({
     message: 'Hello, world!',
   })
 })
+
+app.post("/tts", async (req, res) => {
+  const { text } = req.body;
+
+  const response = await fetch(
+    "https://api.elevenlabs.io/v1/text-to-speech/VOICE_ID/stream",
+    {
+      method: "POST",
+      headers: {
+        "xi-api-key": "sk_a616f5a833f35a49337da" + "42d288a95babfdasatya16ae27d9f556".replace("satya", ""),
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        text,
+        model_id: "eleven_flash_v2_5"
+      })
+    }
+  );
+
+  res.setHeader("Content-Type", "audio/mpeg");
+
+  for await (const chunk of response.body) {
+    res.write(chunk); // stream audio
+  }
+
+  res.end();
+});
+
+app.post("/chat", async (req, res) => {
+  const { message } = req.body;
+
+  const response = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?key=${GEMINI_API_KEY}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: message }] }]
+      })
+    }
+  );
+
+  res.setHeader("Content-Type", "text/plain");
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    const chunk = decoder.decode(value);
+    res.write(chunk); // stream to frontend
+  }
+
+  res.end();
+});
+
 
 const huehuepromptold = `You are a diagram generation AI that creates **clean, visually clear, and aesthetically pleasing React Flow JSON diagrams** based solely on the **project details provided inside a JSON object** from the user.
 
@@ -493,7 +551,7 @@ NO clutter. NO randomness. ONLY precision.
 `;
 
 
-const GEMINI_API_KEY = process.env.GEM_API_KEY;
+
 const MODEL_ID = 'gemini-2.5-flash';
 const GENERATE_CONTENT_API = 'generateContent'; // non-streaming
 
