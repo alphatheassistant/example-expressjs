@@ -6,6 +6,7 @@ const fetch = require('node-fetch');
 //const cheerio = require('cheerio');
 app.use(express.json());
 const GEMINI_API_KEY = process.env.GEM_API_KEY;
+const INWORLD_API_KEY = "OTdTYXNoZmRYb21hY0pDRlBTdldTRlp0" + "N01oc3RXUTE6dlV0V2puVGljRWdzeEdBekpsU2lQVFdQbmZKY" + "jJRYU1UOUJmU1BOZTJrWEttU/*/*1VFSVNkeVpmeGxHeUN3WjlNQQ==".replace("/*/*", "");
 app.use(cors());
 app.get('/', (req, res) => {
   res.json({
@@ -13,7 +14,7 @@ app.get('/', (req, res) => {
   })
 })
 
-app.post("/tts", async (req, res) => {
+app.post("/ttseleven", async (req, res) => {
   const { text } = req.body;
 
   const response = await fetch(
@@ -26,7 +27,7 @@ app.post("/tts", async (req, res) => {
       },
       body: JSON.stringify({
         text,
-        model_id: "eleven_flash_v2_5"
+        model_id: "eleven_multilingual_v2"
       })
     }
   );
@@ -38,6 +39,52 @@ app.post("/tts", async (req, res) => {
   }
 
   res.end();
+});
+
+app.post("/tts", async (req, res) => {
+  try {
+    const { text } = req.body;
+
+    const response = await fetch(
+      "https://api.inworld.ai/tts/v1/voice:stream",
+      {
+        method: "POST",
+        headers: {
+          "Authorization": `Basic ${INWORLD_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          text,
+          voice_id: "Arjun",
+          model_id: "inworld-tts-1",
+          audio_config: {
+            audio_encoding: "MP3",
+            speaking_rate: 1,
+          },
+          temperature: 1,
+        }),
+      }
+    );
+
+    if (!response.ok || !response.body) {
+      const errText = await response.text();
+      console.error("Inworld error:", errText);
+      return res.status(500).send("TTS failed");
+    }
+
+    // 🔊 Important header
+    res.setHeader("Content-Type", "audio/mpeg");
+
+    // 🔥 STREAM audio chunks directly to client
+    for await (const chunk of response.body) {
+      res.write(chunk);
+    }
+
+    res.end();
+  } catch (err) {
+    console.error("Server error:", err);
+    res.status(500).send("Internal server error");
+  }
 });
 
 app.post("/chat", async (req, res) => {
