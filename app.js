@@ -2,7 +2,7 @@ const express = require('express')
 const app = express()
 const port = process.env.PORT || 3000
 const cors = require('cors');
-const fetch = require('node-fetch');
+// const fetch = require('node-fetch');
 //const cheerio = require('cheerio');
 app.use(express.json());
 const GEMINI_API_KEY = process.env.GEM_API_KEY;
@@ -18,8 +18,6 @@ app.get('/', (req, res) => {
 })
 
 const WebSocket = require("ws");
-const fetch = require("node-fetch");
-
 // destructure server
 const { WebSocketServer } = WebSocket;
 
