@@ -154,6 +154,51 @@ app.post("/chat", async (req, res) => {
 });
 
 
+
+let currentController = null;
+
+app.post("/chatint", async (req, res) => {
+  try {
+    const { messages } = req.body;
+
+    // 🔥 previous request cancel
+    if (currentController) {
+      currentController.abort();
+    }
+
+    const controller = new AbortController();
+    currentController = controller;
+
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?key=${GEMINI_API_KEY}`,
+      {
+        method: "POST",
+        signal: controller.signal,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: messages
+        })
+      }
+    );
+
+    res.setHeader("Content-Type", "text/plain");
+
+    for await (const chunk of response.body) {
+      res.write(chunk.toString());
+    }
+
+    res.end();
+
+  } catch (err) {
+    if (err.name === "AbortError") {
+      console.log("🛑 Stream aborted");
+      return;
+    }
+    console.error(err);
+    res.status(500).send("Error");
+  }
+});
+
 const huehuepromptold = `You are a diagram generation AI that creates **clean, visually clear, and aesthetically pleasing React Flow JSON diagrams** based solely on the **project details provided inside a JSON object** from the user.
 
 **Your Goal:**
