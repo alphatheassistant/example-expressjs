@@ -23,7 +23,7 @@ const WebSocket = require("ws");
 const { WebSocketServer } = WebSocket;
 
 // 🔥 WS attach
-const wss = new WebSocket.WebSocketServer({ server });
+const wss = new WebSocket.Server({ server });
 
 wss.on("connection", (ws) => {
   console.log("🟢 WS CONNECTED");
