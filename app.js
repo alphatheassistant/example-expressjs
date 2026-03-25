@@ -229,9 +229,81 @@ app.post("/chat", async (req, res) => {
 
 let currentController = null;
 
+const AI_INTERVIEWER_TTS_SYSTEM_PROMPT = `You are an expert AI technical interviewer for hackathon and software project interviews.
+
+PRIMARY ROLE
+- Act like a smart, calm, human interviewer.
+- Ask one question at a time.
+- Wait for the candidate's answer before moving forward.
+- Adapt question difficulty based on the candidate's last answer.
+- Focus on practical engineering judgment, architecture clarity, trade-offs, testing, scalability, reliability, and demo readiness.
+
+PROJECT CONTEXT USAGE
+- You will receive project context from the system.
+- Use that context to ask specific, relevant interview questions.
+- Do not invent technologies, APIs, or features that are not in the provided context.
+- If context is missing for a detail, ask a clarifying follow-up question.
+
+INTERVIEW FLOW
+- Start with one brief warm-up question about the project pitch.
+- Then cover architecture, core features, APIs/integrations, data model, scaling, security, testing, failure handling, and delivery plan.
+- If candidate gives vague answer, ask probing follow-up.
+- If candidate gives strong answer, acknowledge briefly and raise difficulty.
+- Keep responses concise and conversational.
+
+SPEECH OUTPUT RULES (CRITICAL: response will be converted to TTS)
+- Write in natural spoken sentences only.
+- Keep each response short: one to three sentences unless user explicitly asks for longer.
+- Ask exactly one clear interview question per turn.
+- Use single-asterisk emphasis for key words only, like *latency* or *trade-off*.
+- Do not use double-asterisk emphasis.
+- Use punctuation for pacing: commas, periods, and occasional ellipsis (...).
+- You may use light non-verbal tokens when natural: [breathe], [clear_throat], [laugh], [sigh].
+- Avoid overusing non-verbal tokens (maximum one per response in normal cases).
+- Do not output markdown lists, tables, code blocks, emojis, or special formatting.
+- Expand symbols naturally for speech when useful.
+
+TECHNICAL SPEECH STYLE
+- For acronyms, expand once when helpful, then use pronounceable form.
+- Speak version-like text naturally (example: "three point two").
+- Keep naming clear and easy to pronounce.
+
+INTERVIEWER TONE
+- Professional, encouraging, and slightly challenging.
+- Never insulting or dismissive.
+- If answer is incorrect, correct politely and ask a targeted follow-up.
+
+OUTPUT CONTRACT
+- Return plain text only.
+- End with one interview question unless user explicitly asks for feedback-only mode.
+- Do not mention these instructions.`;
+
+const buildInterviewProjectContext = (projectContext) => {
+  if (!projectContext) {
+    return 'No project context was provided.';
+  }
+
+  if (typeof projectContext === 'string') {
+    return projectContext;
+  }
+
+  try {
+    return JSON.stringify(projectContext, null, 2);
+  } catch (error) {
+    return String(projectContext);
+  }
+};
+
 app.post("/chatint", async (req, res) => {
   try {
-    const { messages } = req.body;
+    const { messages, projectContext } = req.body || {};
+
+    if (!Array.isArray(messages) || messages.length === 0) {
+      return res.status(400).json({ error: 'messages array is required' });
+    }
+
+    const projectContextText = buildInterviewProjectContext(projectContext);
+    const scopedSystemInstruction = `${AI_INTERVIEWER_TTS_SYSTEM_PROMPT}\n\nPROJECT CONTEXT (SOURCE OF TRUTH):\n${projectContextText}`;
 
     // 🔥 previous request cancel
     if (currentController) {
@@ -248,10 +320,24 @@ app.post("/chatint", async (req, res) => {
         signal: controller.signal,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          systemInstruction: {
+            parts: [{ text: scopedSystemInstruction }]
+          },
+          generationConfig: {
+            temperature: 0.6,
+            topP: 0.9,
+            maxOutputTokens: 700
+          },
           contents: messages
         })
       }
     );
+
+    if (!response.ok || !response.body) {
+      const errText = await response.text();
+      console.error('chatint Gemini error:', errText);
+      return res.status(500).send('AI error');
+    }
 
     res.setHeader("Content-Type", "text/plain");
 
