@@ -2,6 +2,7 @@ const express = require('express')
 const app = express()
 const port = process.env.PORT || 3000
 const cors = require('cors');
+const http = require('http');
 const fetch = require('node-fetch');
 //const cheerio = require('cheerio');
 app.use(express.json());
@@ -16,12 +17,12 @@ app.get('/', (req, res) => {
     message: 'Hello, world!',
   })
 })
-
+const server = http.createServer(app);
 const WebSocket = require("ws");
 // destructure server
 const { WebSocketServer } = WebSocket;
 
-const wss = new WebSocketServer({ port: 3001 });
+const wss = new WebSocket.WebSocketServer({ server });
 
 wss.on("connection", (ws) => {
   console.log("🟢 Client connected");
