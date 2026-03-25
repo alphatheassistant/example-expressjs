@@ -22,56 +22,69 @@ const WebSocket = require("ws");
 // destructure server
 const { WebSocketServer } = WebSocket;
 
+// 🔥 WS attach
 const wss = new WebSocket.WebSocketServer({ server });
 
 wss.on("connection", (ws) => {
-  console.log("🟢 Client connected");
+  console.log("🟢 WS CONNECTED");
 
-  let currentAbort = null;
+  ws.send("WS CONNECTED SUCCESS");
 
-  ws.on("message", async (msg) => {
-    const { message, history } = JSON.parse(msg);
-
-    // 🔥 interrupt previous
-    if (currentAbort) {
-      currentAbort.abort();
-    }
-
-    const controller = new AbortController();
-    currentAbort = controller;
-
-    try {
-      const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?key=${process.env.GEMINI_API_KEY}`,
-        {
-          method: "POST",
-          signal: controller.signal,
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            contents: history
-          })
-        }
-      );
-
-      for await (const chunk of response.body) {
-        ws.send(chunk.toString()); // 🔥 real-time push
-      }
-
-      ws.send(JSON.stringify({ done: true }));
-
-    } catch (err) {
-      if (err.name === "AbortError") {
-        ws.send(JSON.stringify({ interrupted: true }));
-      } else {
-        console.error(err);
-      }
-    }
-  });
-
-  ws.on("close", () => {
-    console.log("🔴 Client disconnected");
+  ws.on("message", (msg) => {
+    console.log("MSG:", msg.toString());
+    ws.send("ECHO: " + msg.toString());
   });
 });
+
+
+// wss.on("connection", (ws) => {
+//   console.log("🟢 Client connected");
+
+//   let currentAbort = null;
+
+//   ws.on("message", async (msg) => {
+//     const { message, history } = JSON.parse(msg);
+
+//     // 🔥 interrupt previous
+//     if (currentAbort) {
+//       currentAbort.abort();
+//     }
+
+//     const controller = new AbortController();
+//     currentAbort = controller;
+
+//     try {
+//       const response = await fetch(
+//         `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?key=${process.env.GEMINI_API_KEY}`,
+//         {
+//           method: "POST",
+//           signal: controller.signal,
+//           headers: { "Content-Type": "application/json" },
+//           body: JSON.stringify({
+//             contents: history
+//           })
+//         }
+//       );
+
+//       for await (const chunk of response.body) {
+//         ws.send(chunk.toString()); // 🔥 real-time push
+//       }
+
+//       ws.send(JSON.stringify({ done: true }));
+
+//     } catch (err) {
+//       if (err.name === "AbortError") {
+//         ws.send(JSON.stringify({ interrupted: true }));
+//       } else {
+//         console.error(err);
+//       }
+//     }
+//   });
+
+//   ws.on("close", () => {
+//     console.log("🔴 Client disconnected");
+//   });
+// });
 
 
 
