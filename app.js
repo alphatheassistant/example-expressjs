@@ -17,6 +17,66 @@ app.get('/', (req, res) => {
   })
 })
 
+const WebSocket = require("ws");
+const fetch = require("node-fetch");
+
+// destructure server
+const { WebSocketServer } = WebSocket;
+
+const wss = new WebSocketServer({ port: 3001 });
+
+wss.on("connection", (ws) => {
+  console.log("🟢 Client connected");
+
+  let currentAbort = null;
+
+  ws.on("message", async (msg) => {
+    const { message, history } = JSON.parse(msg);
+
+    // 🔥 interrupt previous
+    if (currentAbort) {
+      currentAbort.abort();
+    }
+
+    const controller = new AbortController();
+    currentAbort = controller;
+
+    try {
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?key=${process.env.GEMINI_API_KEY}`,
+        {
+          method: "POST",
+          signal: controller.signal,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: history
+          })
+        }
+      );
+
+      for await (const chunk of response.body) {
+        ws.send(chunk.toString()); // 🔥 real-time push
+      }
+
+      ws.send(JSON.stringify({ done: true }));
+
+    } catch (err) {
+      if (err.name === "AbortError") {
+        ws.send(JSON.stringify({ interrupted: true }));
+      } else {
+        console.error(err);
+      }
+    }
+  });
+
+  ws.on("close", () => {
+    console.log("🔴 Client disconnected");
+  });
+});
+
+
+
+
 app.post("/ttseleven", async (req, res) => {
   const { text } = req.body;
 
