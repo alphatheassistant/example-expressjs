@@ -116,33 +116,41 @@ app.post("/tts-stream", async (req, res) => {
 });
 
 app.post("/chat", async (req, res) => {
-  const { message } = req.body;
+  try {
+    const { message } = req.body;
 
-  const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?key=${GEMINI_API_KEY}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: message }] }]
-      })
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?key=${process.env.GEMINI_API_KEY}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: message }] }]
+        })
+      }
+    );
+
+    if (!response.ok || !response.body) {
+      const err = await response.text();
+      console.error(err);
+      return res.status(500).send("AI error");
     }
-  );
 
-  res.setHeader("Content-Type", "text/plain");
+    res.setHeader("Content-Type", "text/plain");
+    res.setHeader("Transfer-Encoding", "chunked");
 
-  const reader = response.body.getReader();
-  const decoder = new TextDecoder();
+    // 🔥 Node streaming (correct way)
+    for await (const chunk of response.body) {
+      const text = chunk.toString();
+      res.write(text);
+    }
 
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
+    res.end();
 
-    const chunk = decoder.decode(value);
-    res.write(chunk); // stream to frontend
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Server error");
   }
-
-  res.end();
 });
 
 
