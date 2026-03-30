@@ -4,9 +4,12 @@ const port = process.env.PORT || 3000
 const cors = require('cors');
 const http = require('http');
 const fetch = require('node-fetch');
+const { createClient } = require('@supabase/supabase-js');
 //const cheerio = require('cheerio');
 app.use(express.json());
 const GEMINI_API_KEY = process.env.GEM_API_KEY;
+const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || 'https://jryputmczrmitvrmbijz.supabase.co';
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpyeXB1dG1jenJtaXR2cm1iaWp6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA5NDkxMjUsImV4cCI6MjA2NjUyNTEyNX0.ojPOpo6jH8Rcgaqt-RNloVCu1gp4udY0PyXzPnigcu8';
 const INWORLD_API_KEY = "OTdTYXNoZmRYb21hY0pDRlBTdldTRlp0" + "N01oc3RXUTE6dlV0V2puVGljRWdzeEdBekpsU2lQVFdQbmZKY" + "jJRYU1UOUJmU1BOZTJrWEttU/*/*1VFSVNkeVpmeGxHeUN3WjlNQQ==".replace("/*/*", "");
 // app.use(cors());
 app.use(cors({
@@ -211,7 +214,7 @@ app.post("/chat", async (req, res) => {
     res.setHeader("Content-Type", "text/plain");
     res.setHeader("Transfer-Encoding", "chunked");
 
-    // 🔥 Node streaming (correct way)
+    // Node streaming (correct way)
     for await (const chunk of response.body) {
       const text = chunk.toString();
       res.write(text);
@@ -305,7 +308,7 @@ app.post("/chatint", async (req, res) => {
     const projectContextText = buildInterviewProjectContext(projectContext);
     const scopedSystemInstruction = `${AI_INTERVIEWER_TTS_SYSTEM_PROMPT}\n\nPROJECT CONTEXT (SOURCE OF TRUTH):\n${projectContextText}`;
 
-    // 🔥 previous request cancel
+    // previous request cancel
     if (currentController) {
       currentController.abort();
     }
@@ -1165,6 +1168,363 @@ const parsedJson = JSON.parse(jsonString);
 
 
 
+
+const getSupabaseClient = (accessToken) => {
+  const headers = {};
+  if (accessToken) {
+    headers.Authorization = `Bearer ${accessToken}`;
+  }
+
+  return createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+    },
+    global: {
+      headers,
+    },
+  });
+};
+
+const getAccessToken = (req) => {
+  const authHeader = req.headers.authorization || '';
+  if (!authHeader.startsWith('Bearer ')) return null;
+  return authHeader.slice(7);
+};
+
+const withError = (res, error, fallbackMessage = 'Request failed') => {
+  const message = error?.message || fallbackMessage;
+  return res.status(400).json({ error: message });
+};
+
+const requireUser = async (req, res, next) => {
+  try {
+    const accessToken = getAccessToken(req);
+    if (!accessToken) {
+      return res.status(401).json({ error: 'Missing access token' });
+    }
+
+    const supabase = getSupabaseClient(accessToken);
+    const {
+      data: { user },
+      error,
+    } = await supabase.auth.getUser();
+
+    if (error || !user) {
+      return res.status(401).json({ error: error?.message || 'Unauthorized' });
+    }
+
+    req.supabase = supabase;
+    req.user = user;
+    next();
+  } catch (error) {
+    return res.status(500).json({ error: error?.message || 'Auth middleware error' });
+  }
+};
+
+app.post('/api/auth/sign-up', async (req, res) => {
+  try {
+    const { email, password, name, redirectUrl } = req.body || {};
+    if (!email || !password) {
+      return res.status(400).json({ error: 'email and password are required' });
+    }
+
+    const supabase = getSupabaseClient();
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        emailRedirectTo: redirectUrl,
+        data: {
+          name: name || '',
+        },
+      },
+    });
+
+    if (error) return withError(res, error, 'Sign up failed');
+    return res.json(data);
+  } catch (error) {
+    return res.status(500).json({ error: error?.message || 'Sign up failed' });
+  }
+});
+
+app.post('/api/auth/sign-in', async (req, res) => {
+  try {
+    const { email, password } = req.body || {};
+    if (!email || !password) {
+      return res.status(400).json({ error: 'email and password are required' });
+    }
+
+    const supabase = getSupabaseClient();
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (error) return withError(res, error, 'Sign in failed');
+    return res.json(data);
+  } catch (error) {
+    return res.status(500).json({ error: error?.message || 'Sign in failed' });
+  }
+});
+
+app.post('/api/auth/sign-out', requireUser, async (req, res) => {
+  try {
+    const { error } = await req.supabase.auth.signOut();
+    if (error) return withError(res, error, 'Sign out failed');
+    return res.json({ success: true });
+  } catch (error) {
+    return res.status(500).json({ error: error?.message || 'Sign out failed' });
+  }
+});
+
+app.get('/api/auth/session', requireUser, async (req, res) => {
+  return res.json({ user: req.user });
+});
+
+app.get('/api/hackathons', requireUser, async (req, res) => {
+  try {
+    const ids = (req.query.ids || '').toString().split(',').map((id) => id.trim()).filter(Boolean);
+    let query = req.supabase.from('hackathons').select('*');
+
+    if (ids.length > 0) {
+      query = query.in('id', ids);
+    }
+
+    const { data, error } = await query.order('created_at', { ascending: false });
+    if (error) return withError(res, error, 'Failed to fetch hackathons');
+    return res.json(data || []);
+  } catch (error) {
+    return res.status(500).json({ error: error?.message || 'Failed to fetch hackathons' });
+  }
+});
+
+app.get('/api/hackathons/:id', requireUser, async (req, res) => {
+  try {
+    const { data, error } = await req.supabase
+      .from('hackathons')
+      .select('*')
+      .eq('id', req.params.id)
+      .maybeSingle();
+
+    if (error) return withError(res, error, 'Failed to fetch hackathon');
+    return res.json(data || null);
+  } catch (error) {
+    return res.status(500).json({ error: error?.message || 'Failed to fetch hackathon' });
+  }
+});
+
+app.get('/api/registrations', requireUser, async (req, res) => {
+  try {
+    const { data, error } = await req.supabase
+      .from('user_hackathon_registrations')
+      .select('id, hackathon_id, status')
+      .eq('user_id', req.user.id);
+
+    if (error) return withError(res, error, 'Failed to fetch registrations');
+    return res.json(data || []);
+  } catch (error) {
+    return res.status(500).json({ error: error?.message || 'Failed to fetch registrations' });
+  }
+});
+
+app.get('/api/registrations/:hackathonId/status', requireUser, async (req, res) => {
+  try {
+    const { data, error } = await req.supabase
+      .from('user_hackathon_registrations')
+      .select('id')
+      .eq('user_id', req.user.id)
+      .eq('hackathon_id', req.params.hackathonId)
+      .maybeSingle();
+
+    if (error) return withError(res, error, 'Failed to fetch tracking status');
+    return res.json({ isTracking: !!data });
+  } catch (error) {
+    return res.status(500).json({ error: error?.message || 'Failed to fetch tracking status' });
+  }
+});
+
+app.post('/api/registrations/:hackathonId/toggle', requireUser, async (req, res) => {
+  try {
+    const { hackathonId } = req.params;
+    const { data: existing, error: findError } = await req.supabase
+      .from('user_hackathon_registrations')
+      .select('id')
+      .eq('user_id', req.user.id)
+      .eq('hackathon_id', hackathonId)
+      .maybeSingle();
+
+    if (findError) return withError(res, findError, 'Failed to toggle tracking');
+
+    if (existing) {
+      const { error } = await req.supabase
+        .from('user_hackathon_registrations')
+        .delete()
+        .eq('user_id', req.user.id)
+        .eq('hackathon_id', hackathonId);
+
+      if (error) return withError(res, error, 'Failed to untrack hackathon');
+      return res.json({ isTracking: false });
+    }
+
+    const { error } = await req.supabase
+      .from('user_hackathon_registrations')
+      .insert({
+        user_id: req.user.id,
+        hackathon_id: hackathonId,
+        status: 'registered',
+      });
+
+    if (error) return withError(res, error, 'Failed to track hackathon');
+    return res.json({ isTracking: true });
+  } catch (error) {
+    return res.status(500).json({ error: error?.message || 'Failed to toggle tracking' });
+  }
+});
+
+app.get('/api/custom-events', requireUser, async (req, res) => {
+  try {
+    const { data, error } = await req.supabase
+      .from('custom_hackathon_events')
+      .select('*')
+      .eq('user_id', req.user.id);
+
+    if (error) return withError(res, error, 'Failed to fetch custom events');
+    return res.json(data || []);
+  } catch (error) {
+    return res.status(500).json({ error: error?.message || 'Failed to fetch custom events' });
+  }
+});
+
+app.post('/api/custom-events', requireUser, async (req, res) => {
+  try {
+    const { title, description, date } = req.body || {};
+    if (!title || !date) {
+      return res.status(400).json({ error: 'title and date are required' });
+    }
+
+    const { data, error } = await req.supabase
+      .from('custom_hackathon_events')
+      .insert({
+        user_id: req.user.id,
+        title,
+        description: description || '',
+        date,
+      })
+      .select('*')
+      .single();
+
+    if (error) return withError(res, error, 'Failed to add custom event');
+    return res.status(201).json(data);
+  } catch (error) {
+    return res.status(500).json({ error: error?.message || 'Failed to add custom event' });
+  }
+});
+
+app.get('/api/saved-ideas', requireUser, async (req, res) => {
+  try {
+    const { data, error } = await req.supabase
+      .from('saved_ideas')
+      .select('*')
+      .eq('user_id', req.user.id)
+      .order('created_at', { ascending: false });
+
+    if (error) return withError(res, error, 'Failed to fetch saved ideas');
+    return res.json(data || []);
+  } catch (error) {
+    return res.status(500).json({ error: error?.message || 'Failed to fetch saved ideas' });
+  }
+});
+
+app.get('/api/saved-ideas/by-title/:title', requireUser, async (req, res) => {
+  try {
+    const decodedTitle = decodeURIComponent(req.params.title || '');
+    const { data, error } = await req.supabase
+      .from('saved_ideas')
+      .select('*')
+      .eq('user_id', req.user.id)
+      .order('created_at', { ascending: false });
+
+    if (error) return withError(res, error, 'Failed to fetch saved idea');
+    const matched = (data || []).find((item) => item?.idea_data?.title === decodedTitle) || null;
+    return res.json(matched);
+  } catch (error) {
+    return res.status(500).json({ error: error?.message || 'Failed to fetch saved idea' });
+  }
+});
+
+app.post('/api/saved-ideas', requireUser, async (req, res) => {
+  try {
+    const { idea_data, hackathon_id } = req.body || {};
+    if (!idea_data) {
+      return res.status(400).json({ error: 'idea_data is required' });
+    }
+
+    const { data, error } = await req.supabase
+      .from('saved_ideas')
+      .insert({
+        user_id: req.user.id,
+        idea_data,
+        hackathon_id: hackathon_id || null,
+      })
+      .select('*')
+      .single();
+
+    if (error) return withError(res, error, 'Failed to save idea');
+    return res.status(201).json(data);
+  } catch (error) {
+    return res.status(500).json({ error: error?.message || 'Failed to save idea' });
+  }
+});
+
+app.delete('/api/saved-ideas/:id', requireUser, async (req, res) => {
+  try {
+    const { error } = await req.supabase
+      .from('saved_ideas')
+      .delete()
+      .eq('id', req.params.id)
+      .eq('user_id', req.user.id);
+
+    if (error) return withError(res, error, 'Failed to delete saved idea');
+    return res.json({ success: true });
+  } catch (error) {
+    return res.status(500).json({ error: error?.message || 'Failed to delete saved idea' });
+  }
+});
+
+app.get('/api/notifications', requireUser, async (req, res) => {
+  try {
+    const limit = Number(req.query.limit || 10);
+    const { data, error } = await req.supabase
+      .from('notifications')
+      .select('*')
+      .eq('user_id', req.user.id)
+      .order('created_at', { ascending: false })
+      .limit(Number.isNaN(limit) ? 10 : limit);
+
+    if (error) return withError(res, error, 'Failed to fetch notifications');
+    return res.json(data || []);
+  } catch (error) {
+    return res.status(500).json({ error: error?.message || 'Failed to fetch notifications' });
+  }
+});
+
+app.patch('/api/notifications/:id/read', requireUser, async (req, res) => {
+  try {
+    const { data, error } = await req.supabase
+      .from('notifications')
+      .update({ is_read: true })
+      .eq('id', req.params.id)
+      .eq('user_id', req.user.id)
+      .select('*')
+      .single();
+
+    if (error) return withError(res, error, 'Failed to update notification');
+    return res.json(data);
+  } catch (error) {
+    return res.status(500).json({ error: error?.message || 'Failed to update notification' });
+  }
+});
 
 
 app.listen(port, "0.0.0.0", () => {
